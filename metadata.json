@@ -1,0 +1,6 @@
+{
+  "name": "Lumina Studio Pro - AI & RAW Photo Editor",
+  "description": "Professional offline-first photo editor with RAW & high-res support, batch processing, AI object removal, background replacement, film presets, tone curves, and cloud sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

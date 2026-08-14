@@ -1,0 +1,69 @@
+import React from 'react';
+import {
+  Palette,
+  Sliders,
+  TrendingUp,
+  SunMedium,
+  Crop,
+  Sparkles,
+  Layers,
+  Stamp,
+  History,
+  Camera,
+  Focus,
+  Aperture,
+} from 'lucide-react';
+
+interface ToolTabsProps {
+  activeTab: string;
+  onSelectTab: (tabId: string) => void;
+}
+
+export const ToolTabs: React.FC<ToolTabsProps> = ({ activeTab, onSelectTab }) => {
+  const tabs = [
+    { id: 'raw-optics', label: 'RAW & Optics', icon: Camera, badge: 'RAW' },
+    { id: 'presets', label: 'Presets', icon: Palette },
+    { id: 'adjust', label: 'Adjust', icon: Sliders },
+    { id: 'detail', label: 'Detail & NR', icon: Focus },
+    { id: 'blur-depth', label: 'Blur & Depth', icon: Aperture, badge: 'AI' },
+    { id: 'curves', label: 'Curves', icon: TrendingUp },
+    { id: 'hsl', label: 'Color & LUTs', icon: SunMedium },
+    { id: 'crop', label: 'Crop & Rotate', icon: Crop },
+    { id: 'ai-tools', label: 'AI Magic', icon: Sparkles, badge: 'AI' },
+    { id: 'masks', label: 'Masks', icon: Layers },
+    { id: 'layers', label: 'Layers Studio', icon: Layers, badge: 'PS' },
+    { id: 'watermark', label: 'Watermark', icon: Stamp },
+    { id: 'history', label: 'History', icon: History },
+  ];
+
+  return (
+    <div className="flex border-b border-slate-800/80 bg-slate-950/90 overflow-x-auto scrollbar-none select-none">
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onSelectTab(tab.id)}
+            className={`relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+              isActive
+                ? 'text-indigo-400 bg-slate-900/90'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
+            }`}
+          >
+            <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : 'text-slate-500'}`} />
+            <span>{tab.label}</span>
+            {tab.badge && (
+              <span className="text-[9px] font-black uppercase px-1 py-0.2 rounded bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950">
+                {tab.badge}
+              </span>
+            )}
+            {isActive && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500" />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+};

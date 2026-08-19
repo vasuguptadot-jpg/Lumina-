@@ -1,4 +1,17 @@
-import { AdjustmentSettings, BorderSettings, CropSettings, HSLSettings, SelectiveMask, ToneCurves, WatermarkSettings } from '../types/editor';
+import {
+  AdjustmentSettings,
+  BorderSettings,
+  CropSettings,
+  HSLSettings,
+  SelectiveMask,
+  ToneCurves,
+  WatermarkSettings,
+  RetouchStroke,
+  TypographyItem,
+  DesignElementItem,
+  DrawingStroke,
+  FilterPreset,
+} from '../types/editor';
 import { applyCropAndTransform } from './cropEngine';
 import { processImagePipeline } from './colorPipeline';
 import { encodeCanvasToTiff } from './tiffEncoder';
@@ -20,9 +33,14 @@ export interface FullRenderOptions {
   hsl: HSLSettings;
   activePresetId?: string | null;
   presetStrength?: number;
+  customPresets?: FilterPreset[];
   watermark?: WatermarkSettings;
   border?: BorderSettings;
   masks?: SelectiveMask[];
+  retouchStrokes?: RetouchStroke[];
+  typography?: TypographyItem[];
+  designElements?: DesignElementItem[];
+  drawingStrokes?: DrawingStroke[];
   exportConfig: ExportConfig;
 }
 
@@ -35,9 +53,14 @@ export async function exportHighResImage(options: FullRenderOptions): Promise<{ 
     hsl,
     activePresetId,
     presetStrength,
+    customPresets,
     watermark,
     border,
     masks,
+    retouchStrokes,
+    typography,
+    designElements,
+    drawingStrokes,
     exportConfig,
   } = options;
 
@@ -82,9 +105,14 @@ export async function exportHighResImage(options: FullRenderOptions): Promise<{ 
     hsl,
     activePresetId,
     presetStrength,
+    customPresets,
     watermark,
     border,
     masks,
+    retouchStrokes,
+    typography,
+    designElements,
+    drawingStrokes,
     highQuality: true,
   });
 

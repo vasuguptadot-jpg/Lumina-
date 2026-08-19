@@ -12,6 +12,20 @@ import {
   Camera,
   Focus,
   Aperture,
+  Bandage,
+  Smile,
+  PersonStanding,
+  CloudSun,
+  Maximize2,
+  Wand2,
+  Film,
+  Type,
+  Shapes,
+  LayoutGrid,
+  Paintbrush,
+  Brain,
+  Compass,
+  Columns,
 } from 'lucide-react';
 
 interface ToolTabsProps {
@@ -21,19 +35,34 @@ interface ToolTabsProps {
 
 export const ToolTabs: React.FC<ToolTabsProps> = ({ activeTab, onSelectTab }) => {
   const tabs = [
+    { id: 'comparison', label: 'Before / After', icon: Columns, badge: 'COMPARE' },
+    { id: 'ai-understanding', label: 'AI Vision & Fix', icon: Brain, badge: 'VISION' },
+    { id: 'composition', label: 'Composition AI', icon: Compass, badge: 'GUIDE' },
     { id: 'raw-optics', label: 'RAW & Optics', icon: Camera, badge: 'RAW' },
     { id: 'presets', label: 'Presets', icon: Palette },
+    { id: 'film-simulation', label: 'Film Simulation', icon: Film, badge: '35MM' },
+    { id: 'drawing', label: 'Draw & Paint', icon: Paintbrush, badge: 'STUDIO' },
+    { id: 'typography', label: 'Text & Typography', icon: Type, badge: 'TYPE' },
+    { id: 'graphics-design', label: 'Graphics & Design', icon: Shapes, badge: 'CANVA' },
+    { id: 'collage', label: 'Collage Studio', icon: LayoutGrid, badge: 'GRID' },
+    { id: 'effects', label: 'Effects Studio', icon: Wand2, badge: 'FX' },
     { id: 'adjust', label: 'Adjust', icon: Sliders },
+    { id: 'lighting', label: 'Lighting Studio', icon: SunMedium, badge: 'PRO' },
+    { id: 'portrait', label: 'Portrait Studio', icon: Smile, badge: 'FACE' },
+    { id: 'body', label: 'Body Studio', icon: PersonStanding, badge: 'BODY' },
+    { id: 'sky', label: 'Sky Studio', icon: CloudSun, badge: 'SKY' },
+    { id: 'geometry', label: 'Perspective & Warp', icon: Maximize2, badge: 'PRO' },
+    { id: 'retouch', label: 'Retouch & Heal', icon: Bandage, badge: 'PRO' },
     { id: 'detail', label: 'Detail & NR', icon: Focus },
     { id: 'blur-depth', label: 'Blur & Depth', icon: Aperture, badge: 'AI' },
     { id: 'curves', label: 'Curves', icon: TrendingUp },
     { id: 'hsl', label: 'Color & LUTs', icon: SunMedium },
     { id: 'crop', label: 'Crop & Rotate', icon: Crop },
-    { id: 'ai-tools', label: 'AI Magic', icon: Sparkles, badge: 'AI' },
+    { id: 'ai-tools', label: 'AI & Enhance', icon: Sparkles, badge: 'AI' },
     { id: 'masks', label: 'Masks', icon: Layers },
     { id: 'layers', label: 'Layers Studio', icon: Layers, badge: 'PS' },
     { id: 'watermark', label: 'Watermark', icon: Stamp },
-    { id: 'history', label: 'History', icon: History },
+    { id: 'history', label: 'History & Versions', icon: History, badge: 'MASTER' },
   ];
 
   return (

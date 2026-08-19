@@ -21,6 +21,7 @@ import {
   Scan,
 } from 'lucide-react';
 import { BorderSettings, CropSettings } from '../../../types/editor';
+import { CompositionAssistantPanel } from './CompositionAssistantPanel';
 import {
   ASPECT_RATIOS,
   calculateSmartCrop,
@@ -48,7 +49,7 @@ export const CropPanel: React.FC<CropPanelProps> = ({
   onChangeBorder,
   showToast,
 }) => {
-  const [activeSubSection, setActiveSubSection] = useState<'crop' | 'transform' | 'expand' | 'resize' | 'frame'>('crop');
+  const [activeSubSection, setActiveSubSection] = useState<'crop' | 'composition' | 'transform' | 'expand' | 'resize' | 'frame'>('crop');
   const [customRatioW, setCustomRatioW] = useState<number>(4);
   const [customRatioH, setCustomRatioH] = useState<number>(3);
   const [isSmartCalculating, setIsSmartCalculating] = useState(false);
@@ -183,9 +184,10 @@ export const CropPanel: React.FC<CropPanelProps> = ({
       </div>
 
       {/* Sub Navigation Section Buttons */}
-      <div className="grid grid-cols-5 gap-1 p-1 bg-slate-900/80 border border-slate-800 rounded-xl">
+      <div className="grid grid-cols-6 gap-1 p-1 bg-slate-900/80 border border-slate-800 rounded-xl">
         {[
           { id: 'crop', label: 'Crop', icon: Crop },
+          { id: 'composition', label: 'AI Guide', icon: Sparkles },
           { id: 'transform', label: 'Rotate/Tilt', icon: Compass },
           { id: 'expand', label: 'Expand', icon: Maximize2 },
           { id: 'resize', label: 'Resize', icon: Sliders },
@@ -197,7 +199,7 @@ export const CropPanel: React.FC<CropPanelProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveSubSection(tab.id as any)}
-              className={`py-1.5 px-1 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 transition-all ${
+              className={`py-1.5 px-0.5 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 transition-all ${
                 isActive
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -209,6 +211,17 @@ export const CropPanel: React.FC<CropPanelProps> = ({
           );
         })}
       </div>
+
+      {/* COMPOSITION ASSISTANT SECTION */}
+      {activeSubSection === 'composition' && (
+        <CompositionAssistantPanel
+          crop={crop}
+          imageWidth={imageWidth}
+          imageHeight={imageHeight}
+          onChangeCrop={onChange}
+          showToast={showToast}
+        />
+      )}
 
       {/* 1. CROP & ASPECT RATIOS SECTION */}
       {activeSubSection === 'crop' && (

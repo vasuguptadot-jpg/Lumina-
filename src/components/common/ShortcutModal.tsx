@@ -10,14 +10,20 @@ export const ShortcutModal: React.FC<ShortcutModalProps> = ({ isOpen, onClose })
   if (!isOpen) return null;
 
   const shortcuts = [
-    { key: 'Ctrl + Z', desc: 'Undo last edit' },
+    { key: 'Ctrl + Z', desc: 'Undo last edit or stroke' },
     { key: 'Ctrl + Y / Shift+Z', desc: 'Redo last edit' },
     { key: '\\ (Backslash)', desc: 'Hold to peek original photo' },
     { key: 'Space + Drag', desc: 'Pan viewport image' },
     { key: 'Scroll Wheel', desc: 'Pan viewport vertically' },
     { key: 'Ctrl + Wheel', desc: 'Zoom in / out of canvas' },
     { key: 'F', desc: 'Fit image to screen' },
-    { key: 'C', desc: 'Switch to Crop tool' },
+    { key: 'B', desc: 'Draw & Paint Studio' },
+    { key: 'I', desc: 'Eyedropper Color Picker' },
+    { key: '[ / ]', desc: 'Decrease / Increase Brush Size' },
+    { key: 'T', desc: 'Text & Typography Tool' },
+    { key: 'G', desc: 'Graphics & Design Elements' },
+    { key: 'K', desc: 'Collage Studio' },
+    { key: 'C', desc: 'Switch to Crop & Transform' },
     { key: 'P', desc: 'Switch to Film Presets' },
     { key: 'A', desc: 'Switch to Color Adjustments' },
     { key: 'Ctrl + E', desc: 'Open High-Resolution Export modal' },

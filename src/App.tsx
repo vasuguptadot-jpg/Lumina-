@@ -132,6 +132,15 @@ export function App() {
       crop: { ...snap.crop },
       activePresetId: snap.activePresetId,
       presetStrength: snap.presetStrength ?? 100,
+      watermark: snap.watermark ? { ...snap.watermark } : project.watermark,
+      border: snap.border ? { ...snap.border } : project.border,
+      masks: snap.masks ? [...snap.masks] : project.masks,
+      layers: snap.layers ? [...snap.layers] : project.layers,
+      typography: snap.typography ? [...snap.typography] : project.typography,
+      designElements: snap.designElements ? [...snap.designElements] : project.designElements,
+      retouchStrokes: snap.retouchStrokes ? [...snap.retouchStrokes] : project.retouchStrokes,
+      drawingStrokes: snap.drawingStrokes ? [...snap.drawingStrokes] : project.drawingStrokes,
+      collage: snap.collage ? { ...snap.collage } : project.collage,
       historyIndex: newIdx,
       updatedAt: Date.now(),
     });
@@ -150,6 +159,15 @@ export function App() {
       crop: { ...snap.crop },
       activePresetId: snap.activePresetId,
       presetStrength: snap.presetStrength ?? 100,
+      watermark: snap.watermark ? { ...snap.watermark } : project.watermark,
+      border: snap.border ? { ...snap.border } : project.border,
+      masks: snap.masks ? [...snap.masks] : project.masks,
+      layers: snap.layers ? [...snap.layers] : project.layers,
+      typography: snap.typography ? [...snap.typography] : project.typography,
+      designElements: snap.designElements ? [...snap.designElements] : project.designElements,
+      retouchStrokes: snap.retouchStrokes ? [...snap.retouchStrokes] : project.retouchStrokes,
+      drawingStrokes: snap.drawingStrokes ? [...snap.drawingStrokes] : project.drawingStrokes,
+      collage: snap.collage ? { ...snap.collage } : project.collage,
       historyIndex: newIdx,
       updatedAt: Date.now(),
     });
@@ -270,7 +288,12 @@ export function App() {
           />
         )}
 
-        {activeTab === 'batch' && <BatchProcessor showToast={showToast} />}
+        {activeTab === 'batch' && (
+          <BatchProcessor
+            currentProject={project}
+            showToast={showToast}
+          />
+        )}
 
         {activeTab === 'samples' && (
           <SampleGallery

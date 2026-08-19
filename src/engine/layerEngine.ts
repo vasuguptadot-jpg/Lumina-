@@ -6,6 +6,7 @@ import {
   AdjustmentSettings,
 } from '../types/editor';
 import { applyCoreAdjustments } from './colorPipeline';
+import { DEFAULT_ADJUSTMENTS } from './defaultSettings';
 
 /**
  * Maps Photoshop blend modes to HTML5 Canvas globalCompositeOperation where standard,
@@ -708,65 +709,9 @@ export function compositeLayersStack(
     // A. Adjustment Layer - applies photographic adjustments to all merged layers beneath
     if (layer.type === 'adjustment' && layer.adjustmentSettings) {
       const currentCompositeData = outCtx.getImageData(0, 0, w, h);
-      const adj = layer.adjustmentSettings;
       const fullAdj: AdjustmentSettings = {
-        exposure: adj.exposure ?? 0,
-        brightness: adj.brightness ?? 0,
-        contrast: adj.contrast ?? 0,
-        highlights: adj.highlights ?? 0,
-        shadows: adj.shadows ?? 0,
-        whites: adj.whites ?? 0,
-        blacks: adj.blacks ?? 0,
-        gamma: adj.gamma ?? 0,
-        midtones: adj.midtones ?? 0,
-        hdr: adj.hdr ?? 0,
-        brilliance: adj.brilliance ?? 0,
-        fade: adj.fade ?? 0,
-        blackPoint: adj.blackPoint ?? 0,
-        whitePoint: adj.whitePoint ?? 0,
-        temperature: adj.temperature ?? 0,
-        tint: adj.tint ?? 0,
-        saturation: adj.saturation ?? 0,
-        vibrance: adj.vibrance ?? 0,
-        clarity: adj.clarity ?? 0,
-        sharpness: adj.sharpness ?? 0,
-        structure: adj.structure ?? 0,
-        dehaze: adj.dehaze ?? 0,
-        vignette: adj.vignette ?? 0,
-        vignetteMidpoint: 50,
-        vignetteFeather: 50,
-        grain: 0,
-        grainRoughness: 50,
-        grainColor: 0,
-        splitToning: {
-          highlightHue: 0,
-          highlightSat: 0,
-          shadowHue: 0,
-          shadowSat: 0,
-          balance: 0,
-        },
-        colorGrading: {
-          shadows: { hue: 0, saturation: 0, luminance: 0 },
-          midtones: { hue: 0, saturation: 0, luminance: 0 },
-          highlights: { hue: 0, saturation: 0, luminance: 0 },
-          global: { hue: 0, saturation: 0, luminance: 0 },
-          blending: 50,
-          balance: 0,
-        },
-        hsl: {
-          red: { hue: 0, saturation: 0, luminance: 0 },
-          orange: { hue: 0, saturation: 0, luminance: 0 },
-          yellow: { hue: 0, saturation: 0, luminance: 0 },
-          green: { hue: 0, saturation: 0, luminance: 0 },
-          aqua: { hue: 0, saturation: 0, luminance: 0 },
-          blue: { hue: 0, saturation: 0, luminance: 0 },
-          purple: { hue: 0, saturation: 0, luminance: 0 },
-          magenta: { hue: 0, saturation: 0, luminance: 0 },
-        },
-        noiseReduction: 0,
-        colorNoiseReduction: 0,
-        colorFilter: 'none',
-        colorFilterIntensity: 0,
+        ...DEFAULT_ADJUSTMENTS,
+        ...layer.adjustmentSettings,
       };
 
       const adjData = applyCoreAdjustments(currentCompositeData, fullAdj);

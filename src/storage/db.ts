@@ -121,3 +121,33 @@ export async function getAllCustomPresetsFromDB(): Promise<FilterPreset[]> {
     return [];
   }
 }
+
+export async function deleteCustomPresetFromDB(id: string): Promise<void> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_PRESETS, 'readwrite');
+      const store = tx.objectStore(STORE_PRESETS);
+      const req = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error(`Failed to delete preset ${id}:`, err);
+  }
+}
+
+export async function saveBatchCustomPresetsToDB(presets: FilterPreset[]): Promise<void> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_PRESETS, 'readwrite');
+      const store = tx.objectStore(STORE_PRESETS);
+      presets.forEach((p) => store.put(p));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.error('Failed to save batch presets:', err);
+  }
+}

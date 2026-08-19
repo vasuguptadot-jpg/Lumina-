@@ -403,19 +403,204 @@ export function computeMaskAlphaMap(
       break;
     }
 
+    case 'ai-generated': {
+      // AI-driven prompt segmentation / custom semantic mask
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+      const prompt = (mask.aiPrompt || '').toLowerCase();
+
+      // Analyze prompt terms to identify targeted features
+      const isSky = prompt.includes('sky') || prompt.includes('cloud') || prompt.includes('sunset') || prompt.includes('horizon');
+      const isSubject = prompt.includes('person') || prompt.includes('subject') || prompt.includes('model') || prompt.includes('human') || prompt.includes('man') || prompt.includes('woman');
+      const isFace = prompt.includes('face') || prompt.includes('skin') || prompt.includes('eyes') || prompt.includes('lips');
+      const isHair = prompt.includes('hair') || prompt.includes('beard') || prompt.includes('head');
+      const isGreen = prompt.includes('tree') || prompt.includes('grass') || prompt.includes('plant') || prompt.includes('leaf') || prompt.includes('forest') || prompt.includes('green');
+      const isWater = prompt.includes('water') || prompt.includes('sea') || prompt.includes('ocean') || prompt.includes('lake') || prompt.includes('river');
+      const isDark = prompt.includes('shadow') || prompt.includes('dark') || prompt.includes('night') || prompt.includes('black');
+      const isBright = prompt.includes('highlight') || prompt.includes('bright') || prompt.includes('light') || prompt.includes('glow') || prompt.includes('sun');
+      const isRed = prompt.includes('red') || prompt.includes('warm') || prompt.includes('fire');
+      const isBlue = prompt.includes('blue') || prompt.includes('cool');
+
+      const depth = getOrComputeDepthMap(ctx, width, height, 'neural-gradient');
+
+      for (let y = 0; y < height; y++) {
+        const row = y * width;
+        const normY = y / height;
+        for (let x = 0; x < width; x++) {
+          const i = row + x;
+          const idx = i * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const normX = x / width;
+          const d = depth[i];
+
+          let score = 0;
+
+          if (isSky) {
+            const hPrior = normY < 0.65 ? Math.pow(1.0 - normY / 0.65, 0.6) : 0;
+            const isSkyCol = (b > r && b > g - 10) || (lum > 185);
+            score = isSkyCol ? hPrior * (0.5 + (b / 255) * 0.5) : 0;
+          } else if (isSubject) {
+            const centerDist = Math.hypot((normX - 0.5) * 2, (normY - 0.55) * 2);
+            const centerPrior = Math.max(0, 1.0 - centerDist * 0.65);
+            const depthPrior = d >= 0.25 && d <= 0.62 ? 1.0 - Math.abs(d - 0.43) / 0.20 : 0;
+            score = centerPrior * 0.4 + depthPrior * 0.6;
+          } else if (isFace) {
+            const cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
+            const cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+            const isSkin = cr >= 132 && cr <= 175 && cb >= 77 && cb <= 130 && r > g;
+            const faceDist = Math.hypot((normX - 0.5) * 2, (normY - 0.4) * 2.2);
+            score = isSkin ? Math.max(0, 1.0 - faceDist * 0.9) : 0;
+          } else if (isHair) {
+            const headDist = Math.hypot((normX - 0.5) * 2, (normY - 0.35) * 2.2);
+            score = headDist < 0.8 && normY < 0.6 && lum < 160 ? 0.8 : 0;
+          } else if (isGreen) {
+            const greenDominance = g > r && g > b && g > 40;
+            score = greenDominance ? (g - Math.max(r, b)) / 100 : 0;
+          } else if (isWater) {
+            const waterCol = (b > r && g > r && normY > 0.45) || (lum < 150 && b >= g && normY > 0.5);
+            score = waterCol ? 0.85 : 0;
+          } else if (isDark) {
+            score = lum < 90 ? (90 - lum) / 90 : 0;
+          } else if (isBright) {
+            score = lum > 170 ? (lum - 170) / 85 : 0;
+          } else if (isRed) {
+            score = r > g + 20 && r > b + 20 ? (r - Math.max(g, b)) / 120 : 0;
+          } else if (isBlue) {
+            score = b > r + 15 && b > g + 10 ? (b - Math.max(r, g)) / 120 : 0;
+          } else {
+            // General salient center foreground object
+            const centerDist = Math.hypot((normX - 0.5) * 2, (normY - 0.5) * 2);
+            score = Math.max(0, 1.0 - centerDist * 0.8);
+          }
+
+          alpha[i] = Math.round(Math.max(0, Math.min(1, score * 1.3)) * 255);
+        }
+      }
+      break;
+    }
+
     default:
       alpha.fill(255);
       break;
   }
 
-  // Handle Invert Mask
+  // 1. Mask Refinement: Shift Edge (Dilation / Erosion)
+  if (mask.refineEdge && mask.refineEdge !== 0) {
+    applyShiftEdge(alpha, width, height, mask.refineEdge);
+  }
+
+  // 2. Mask Refinement: Smoothing & Feathering
+  const totalFeather = (mask.feather ?? 0) + (mask.refineSmooth ?? 0);
+  if (totalFeather > 0 && mask.type !== 'linear' && mask.type !== 'radial') {
+    applyAlphaFeatherBlur(alpha, width, height, totalFeather);
+  }
+
+  // 3. Mask Refinement: Edge Contrast
+  if (mask.refineContrast && mask.refineContrast > 0) {
+    applyMaskContrast(alpha, mask.refineContrast);
+  }
+
+  // 4. Invert Mask
   if (mask.inverted) {
     for (let i = 0; i < len; i++) {
       alpha[i] = 255 - alpha[i];
     }
   }
 
+  // 5. Mask Density / Opacity Scaling
+  const density = (mask.density ?? mask.opacity ?? 100) / 100;
+  if (density < 1.0) {
+    for (let i = 0; i < len; i++) {
+      alpha[i] = Math.round(alpha[i] * density);
+    }
+  }
+
   return alpha;
+}
+
+/**
+ * Edge shift via morphological dilation (+radius) or erosion (-radius)
+ */
+function applyShiftEdge(alpha: Uint8Array, width: number, height: number, shift: number) {
+  const radius = Math.min(10, Math.max(1, Math.round(Math.abs(shift) / 10)));
+  const isDilate = shift > 0;
+  const temp = new Uint8Array(alpha);
+
+  for (let y = radius; y < height - radius; y++) {
+    const row = y * width;
+    for (let x = radius; x < width - radius; x++) {
+      let extreme = isDilate ? 0 : 255;
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const val = temp[(y + dy) * width + (x + dx)];
+          if (isDilate) {
+            if (val > extreme) extreme = val;
+          } else {
+            if (val < extreme) extreme = val;
+          }
+        }
+      }
+      alpha[row + x] = extreme;
+    }
+  }
+}
+
+/**
+ * Ultra-fast separable box blur for mask feathering & edge smoothing
+ */
+function applyAlphaFeatherBlur(alpha: Uint8Array, width: number, height: number, feather: number) {
+  const radius = Math.min(30, Math.max(1, Math.round((feather / 100) * 20)));
+  const temp = new Uint8Array(alpha.length);
+
+  // Horizontal pass
+  for (let y = 0; y < height; y++) {
+    const row = y * width;
+    for (let x = 0; x < width; x++) {
+      let sum = 0;
+      let count = 0;
+      for (let dx = -radius; dx <= radius; dx++) {
+        const nx = x + dx;
+        if (nx >= 0 && nx < width) {
+          sum += alpha[row + nx];
+          count++;
+        }
+      }
+      temp[row + x] = Math.round(sum / count);
+    }
+  }
+
+  // Vertical pass
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      let sum = 0;
+      let count = 0;
+      for (let dy = -radius; dy <= radius; dy++) {
+        const ny = y + dy;
+        if (ny >= 0 && ny < height) {
+          sum += temp[ny * width + x];
+          count++;
+        }
+      }
+      alpha[y * width + x] = Math.round(sum / count);
+    }
+  }
+}
+
+/**
+ * Contrast S-Curve steepness for crisp mask edge refinement
+ */
+function applyMaskContrast(alpha: Uint8Array, contrastVal: number) {
+  const factor = 1 + (contrastVal / 100) * 3; // 1 to 4x steepness
+  for (let i = 0; i < alpha.length; i++) {
+    const norm = alpha[i] / 255;
+    // Sigmoid centered at 0.5
+    const centered = norm - 0.5;
+    const contracted = 0.5 + centered * factor;
+    alpha[i] = Math.round(Math.max(0, Math.min(1, contracted)) * 255);
+  }
 }
 
 /**

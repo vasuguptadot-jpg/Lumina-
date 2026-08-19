@@ -17,21 +17,85 @@ import {
   Minus,
   Layers,
   Flame,
+  Bandage,
+  Undo2,
+  Scissors,
+  ChevronDown,
 } from 'lucide-react';
-import { AdjustmentSettings, BorderSettings, CropSettings, HSLSettings, Project, SelectiveMask, ToneCurves, WatermarkSettings } from '../../types/editor';
+import {
+  AdjustmentSettings,
+  BorderSettings,
+  CropSettings,
+  HSLSettings,
+  Project,
+  SelectiveMask,
+  ToneCurves,
+  WatermarkSettings,
+  RetouchStroke,
+  RetouchToolType,
+  DrawingStroke,
+  DrawingToolType,
+  DrawingShapeType,
+  CustomBrushType,
+  LayerBlendMode,
+  FilterPreset,
+  ComparisonViewMode,
+} from '../../types/editor';
 import { processImagePipeline } from '../../engine/colorPipeline';
 import { smartClientInpaint } from '../../engine/inpainting';
 import { requestAiObjectRemoval } from '../../services/aiService';
 import { getOrComputeDepthMap, getDepthAtCoordinate } from '../../engine/depthEngine';
+import { drawSingleStroke } from '../../engine/drawingEngine';
+import { ComparisonFloatingBar } from './ComparisonFloatingBar';
 
 interface CanvasViewportProps {
   project: Project;
+  customPresets?: FilterPreset[];
+  comparisonMode?: ComparisonViewMode;
+  onChangeComparisonMode?: (mode: ComparisonViewMode) => void;
   onUpdateSettings: (settings: AdjustmentSettings) => void;
   onUpdateCrop: (crop: CropSettings) => void;
   onUpdateImage: (newUrl: string, name?: string) => void;
   onUpdateMasks?: (masks: SelectiveMask[]) => void;
   activeMaskId?: string | null;
   onSelectMask?: (id: string | null) => void;
+  onUpdateRetouchStrokes?: (strokes: RetouchStroke[]) => void;
+  activeRetouchTool?: RetouchToolType;
+  retouchBrushRadius?: number;
+  onChangeRetouchBrushRadius?: (r: number) => void;
+  retouchBrushFeather?: number;
+  onChangeRetouchBrushFeather?: (f: number) => void;
+  retouchBrushOpacity?: number;
+  onChangeRetouchBrushOpacity?: (o: number) => void;
+  cloneSource?: { x: number; y: number } | null;
+  onSetCloneSource?: (pt: { x: number; y: number } | null) => void;
+  isSettingCloneSource?: boolean;
+  onToggleSettingCloneSource?: () => void;
+  // Drawing Studio Props
+  onUpdateDrawingStrokes?: (strokes: DrawingStroke[]) => void;
+  activeDrawingTool?: DrawingToolType;
+  onChangeActiveDrawingTool?: (tool: DrawingToolType) => void;
+  drawingBrushSize?: number;
+  onChangeDrawingBrushSize?: (size: number) => void;
+  drawingBrushOpacity?: number;
+  onChangeDrawingBrushOpacity?: (opacity: number) => void;
+  drawingBrushFlow?: number;
+  drawingBrushHardness?: number;
+  drawingBrushSmoothing?: number;
+  drawingPressureSensitivity?: boolean;
+  drawingBrushColor?: string;
+  onChangeDrawingBrushColor?: (color: string) => void;
+  drawingActiveShape?: DrawingShapeType;
+  drawingShapeFilled?: boolean;
+  drawingShapeFillColor?: string;
+  drawingActiveCustomBrush?: CustomBrushType;
+  drawingGlowEnabled?: boolean;
+  drawingGlowColor?: string;
+  drawingGlowRadius?: number;
+  drawingBlendMode?: LayerBlendMode;
+  isEyedropperActive?: boolean;
+  onToggleEyedropper?: (active: boolean) => void;
+  onSampleEyedropperColor?: (color: string) => void;
   activeToolTab: string;
   isAiProcessing: boolean;
   setIsAiProcessing: (loading: boolean) => void;
@@ -40,12 +104,51 @@ interface CanvasViewportProps {
 
 export const CanvasViewport: React.FC<CanvasViewportProps> = ({
   project,
+  customPresets = [],
+  comparisonMode: propComparisonMode,
+  onChangeComparisonMode,
   onUpdateSettings,
   onUpdateCrop,
   onUpdateImage,
   onUpdateMasks,
   activeMaskId,
   onSelectMask,
+  onUpdateRetouchStrokes,
+  activeRetouchTool = 'healing-brush',
+  retouchBrushRadius = 28,
+  onChangeRetouchBrushRadius,
+  retouchBrushFeather = 50,
+  onChangeRetouchBrushFeather,
+  retouchBrushOpacity = 100,
+  onChangeRetouchBrushOpacity,
+  cloneSource = null,
+  onSetCloneSource,
+  isSettingCloneSource = false,
+  onToggleSettingCloneSource,
+  onUpdateDrawingStrokes,
+  activeDrawingTool = 'brush' as DrawingToolType,
+  onChangeActiveDrawingTool,
+  drawingBrushSize = 14,
+  onChangeDrawingBrushSize,
+  drawingBrushOpacity = 100,
+  onChangeDrawingBrushOpacity,
+  drawingBrushFlow = 100,
+  drawingBrushHardness = 80,
+  drawingBrushSmoothing = 20,
+  drawingPressureSensitivity = true,
+  drawingBrushColor = '#6366f1',
+  onChangeDrawingBrushColor,
+  drawingActiveShape = 'arrow' as DrawingShapeType,
+  drawingShapeFilled = false,
+  drawingShapeFillColor = '#6366f1',
+  drawingActiveCustomBrush = 'neon-glow' as CustomBrushType,
+  drawingGlowEnabled = false,
+  drawingGlowColor = '#a855f7',
+  drawingGlowRadius = 15,
+  drawingBlendMode = 'normal' as LayerBlendMode,
+  isEyedropperActive = false,
+  onToggleEyedropper,
+  onSampleEyedropperColor,
   activeToolTab,
   isAiProcessing,
   setIsAiProcessing,
@@ -54,6 +157,7 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
+  const differenceCanvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const sourceImageRef = useRef<HTMLImageElement | null>(null);
 
@@ -63,17 +167,30 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
-  // Comparison Split Slider State
-  const [comparisonMode, setComparisonMode] = useState<'off' | 'split-vertical' | 'split-horizontal' | 'side-by-side' | 'hold'>('off');
+  // Comparison State
+  const [internalComparisonMode, setInternalComparisonMode] = useState<ComparisonViewMode>('off');
+  const activeComparisonMode = propComparisonMode !== undefined ? propComparisonMode : internalComparisonMode;
+  const setComparisonMode = (mode: ComparisonViewMode) => {
+    if (onChangeComparisonMode) onChangeComparisonMode(mode);
+    setInternalComparisonMode(mode);
+  };
+
   const [splitPos, setSplitPos] = useState(0.5); // 0 to 1
   const [isDraggingSplit, setIsDraggingSplit] = useState(false);
   const [isHoldingBefore, setIsHoldingBefore] = useState(false);
+  const [isShowingBeforeToggle, setIsShowingBeforeToggle] = useState(false);
+  const [opacityBlend, setOpacityBlend] = useState(50); // 0 = original, 100 = edited
+  const [differenceAmp, setDifferenceAmp] = useState(2); // 1x to 5x
 
-  // Inpainting Brush State
+  // Inpainting Brush & Lasso State
   const [brushSize, setBrushSize] = useState(28);
+  const [inpaintDrawMode, setInpaintDrawMode] = useState<'brush' | 'lasso' | 'eraser'>('brush');
   const [isDrawingMask, setIsDrawingMask] = useState(false);
   const [hasMaskDrawn, setHasMaskDrawn] = useState(false);
   const [inpaintPrompt, setInpaintPrompt] = useState('');
+  const [inpaintRemoveShadows, setInpaintRemoveShadows] = useState(true);
+  const [showPromptChips, setShowPromptChips] = useState(false);
+  const lassoPointsRef = useRef<Array<{ x: number; y: number }>>([]);
 
   // Interactive On-Canvas Crop Box Dragging State
   const [cropDragMode, setCropDragMode] = useState<string | null>(null);
@@ -99,7 +216,56 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
     mode: 'add' | 'erase';
   } | null>(null);
 
+  // Retouching Live Stroke State
+  const [isDrawingRetouch, setIsDrawingRetouch] = useState(false);
+  const currentRetouchStrokeRef = useRef<RetouchStroke | null>(null);
+
+  // Drawing Studio State
+  const liveDrawingCanvasRef = useRef<HTMLCanvasElement>(null);
+  const currentDrawingStrokeRef = useRef<DrawingStroke | null>(null);
+  const [isLiveDrawing, setIsLiveDrawing] = useState(false);
+  const [eyedropperSample, setEyedropperSample] = useState<{
+    hex: string;
+    rgb: string;
+    x: number;
+    y: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
+
   const selectedMask = (project.masks || []).find((m) => m.id === activeMaskId) || project.masks?.[0] || null;
+
+  // Redraw in-progress live drawing stroke on overlay canvas
+  const redrawLiveDrawingStroke = useCallback(() => {
+    if (!liveDrawingCanvasRef.current || !currentDrawingStrokeRef.current || !processedCanvasRef.current) return;
+    const canvas = liveDrawingCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    if (canvas.width !== processedCanvasRef.current.width || canvas.height !== processedCanvasRef.current.height) {
+      canvas.width = processedCanvasRef.current.width;
+      canvas.height = processedCanvasRef.current.height;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawSingleStroke(ctx, currentDrawingStrokeRef.current, canvas.width, canvas.height);
+  }, []);
+
+  // Eyedropper color sampling helper
+  const sampleColorAtPoint = useCallback((clientX: number, clientY: number) => {
+    if (!processedCanvasRef.current) return null;
+    const rect = processedCanvasRef.current.getBoundingClientRect();
+    const normX = Math.max(0, Math.min(1, (clientX - rect.left) / (rect.width || 1)));
+    const normY = Math.max(0, Math.min(1, (clientY - rect.top) / (rect.height || 1)));
+    const pxX = Math.min(processedCanvasRef.current.width - 1, Math.max(0, Math.floor(normX * processedCanvasRef.current.width)));
+    const pxY = Math.min(processedCanvasRef.current.height - 1, Math.max(0, Math.floor(normY * processedCanvasRef.current.height)));
+    const ctx = processedCanvasRef.current.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+    const pixel = ctx.getImageData(pxX, pxY, 1, 1).data;
+    const hex = `#${((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1)}`;
+    const rgb = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+    return { hex, rgb, x: normX, y: normY, clientX, clientY };
+  }, []);
 
   // 1. Load source image whenever project originalUrl changes
   useEffect(() => {
@@ -149,9 +315,14 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
       hsl: project.hsl,
       activePresetId: project.activePresetId,
       presetStrength: project.presetStrength,
+      customPresets,
       watermark: project.watermark,
       border: project.border,
       masks: project.masks,
+      retouchStrokes: project.retouchStrokes,
+      typography: project.typography,
+      designElements: project.designElements,
+      drawingStrokes: project.drawingStrokes,
       highQuality: true,
     });
   }, [
@@ -160,14 +331,111 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
     project.hsl,
     project.activePresetId,
     project.presetStrength,
+    customPresets,
     project.watermark,
     project.border,
     project.masks,
+    project.retouchStrokes,
+    project.typography,
+    project.designElements,
+    project.drawingStrokes,
   ]);
 
   useEffect(() => {
     renderProcessedImage();
-  }, [renderProcessedImage]);
+    if (activeComparisonMode === 'difference') {
+      renderDifferenceImage();
+    }
+  }, [renderProcessedImage, activeComparisonMode]);
+
+  // Compute Difference / Delta Heatmap between Original & Processed Canvas
+  const renderDifferenceImage = useCallback(() => {
+    if (!originalCanvasRef.current || !processedCanvasRef.current || !differenceCanvasRef.current) return;
+    const oCanvas = originalCanvasRef.current;
+    const pCanvas = processedCanvasRef.current;
+    const dCanvas = differenceCanvasRef.current;
+    const w = pCanvas.width;
+    const h = pCanvas.height;
+    if (w === 0 || h === 0) return;
+
+    dCanvas.width = w;
+    dCanvas.height = h;
+    const oCtx = oCanvas.getContext('2d');
+    const pCtx = pCanvas.getContext('2d');
+    const dCtx = dCanvas.getContext('2d');
+    if (!oCtx || !pCtx || !dCtx) return;
+
+    try {
+      const oData = oCtx.getImageData(0, 0, w, h);
+      const pData = pCtx.getImageData(0, 0, w, h);
+      const dData = dCtx.createImageData(w, h);
+      const oArr = oData.data;
+      const pArr = pData.data;
+      const dArr = dData.data;
+      const len = oArr.length;
+      const amp = differenceAmp;
+
+      for (let i = 0; i < len; i += 4) {
+        const dr = Math.abs(pArr[i] - oArr[i]) * amp;
+        const dg = Math.abs(pArr[i + 1] - oArr[i + 1]) * amp;
+        const db = Math.abs(pArr[i + 2] - oArr[i + 2]) * amp;
+        const delta = (dr + dg + db) / 3;
+
+        // Enhanced contrast false-color heatmap
+        dArr[i] = Math.min(255, dr * 1.8);
+        dArr[i + 1] = Math.min(255, dg * 1.8);
+        dArr[i + 2] = Math.min(255, db * 2.2);
+        dArr[i + 3] = delta > 0.5 ? Math.min(255, Math.max(80, delta * 3.5)) : 20;
+      }
+      dCtx.putImageData(dData, 0, 0);
+    } catch (err) {
+      console.warn('Difference computation skipped:', err);
+    }
+  }, [differenceAmp]);
+
+  useEffect(() => {
+    if (activeComparisonMode === 'difference') {
+      renderDifferenceImage();
+    }
+  }, [activeComparisonMode, differenceAmp, renderDifferenceImage]);
+
+  // Global Keyboard Shortcuts for Before/After System (\ or O for hold, Y for toggle, S for split)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      if (e.key === '\\' || e.code === 'Backslash' || e.key === 'o' || e.key === 'O') {
+        if (!e.repeat) {
+          setIsHoldingBefore(true);
+        }
+      } else if (e.key === 'y' || e.key === 'Y') {
+        if (activeComparisonMode !== 'toggle') {
+          setComparisonMode('toggle');
+          setIsShowingBeforeToggle(true);
+        } else {
+          setIsShowingBeforeToggle((prev) => !prev);
+        }
+      } else if (e.key === 's' || e.key === 'S') {
+        setComparisonMode(activeComparisonMode === 'split-vertical' ? 'off' : 'split-vertical');
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === '\\' || e.code === 'Backslash' || e.key === 'o' || e.key === 'O') {
+        setIsHoldingBefore(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [activeComparisonMode]);
 
   // Auto Fit to Screen helper
   const fitToScreen = useCallback(() => {
@@ -209,6 +477,101 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
   // Mouse pan & crop handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     setMouseDownPos({ x: e.clientX, y: e.clientY });
+
+    // Drawing Studio & Eyedropper Interaction
+    if (activeToolTab === 'drawing' && processedCanvasRef.current && e.button === 0 && !e.spaceKey) {
+      const sample = sampleColorAtPoint(e.clientX, e.clientY);
+      if (activeDrawingTool === 'eyedropper' || isEyedropperActive) {
+        if (sample) {
+          onChangeDrawingBrushColor?.(sample.hex);
+          onSampleEyedropperColor?.(sample.hex);
+          showToast('success', 'Color Sampled', `Sampled ${sample.hex.toUpperCase()}`);
+          if (isEyedropperActive && onToggleEyedropper) {
+            onToggleEyedropper(false);
+          }
+        }
+        return;
+      }
+
+      if (sample) {
+        setIsLiveDrawing(true);
+        const strokeId = `draw_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        const stroke: DrawingStroke = {
+          id: strokeId,
+          tool: activeDrawingTool,
+          points: [
+            {
+              x: Number(sample.x.toFixed(4)),
+              y: Number(sample.y.toFixed(4)),
+              pressure: 1,
+              time: Date.now(),
+            },
+          ],
+          color: drawingBrushColor,
+          size: drawingBrushSize,
+          opacity: drawingBrushOpacity,
+          flow: drawingBrushFlow,
+          hardness: drawingBrushHardness,
+          smoothing: drawingBrushSmoothing,
+          pressureSensitivity: drawingPressureSensitivity,
+          shapeType: activeDrawingTool === 'shape' ? drawingActiveShape : undefined,
+          shapeFilled: activeDrawingTool === 'shape' ? drawingShapeFilled : undefined,
+          shapeFillColor: activeDrawingTool === 'shape' ? drawingShapeFillColor : undefined,
+          customBrushType: activeDrawingTool === 'custom-brush' ? drawingActiveCustomBrush : undefined,
+          glowEnabled: drawingGlowEnabled,
+          glowColor: drawingGlowColor,
+          glowRadius: drawingGlowRadius,
+          blendMode: drawingBlendMode,
+          visible: true,
+          timestamp: Date.now(),
+        };
+        currentDrawingStrokeRef.current = stroke;
+        redrawLiveDrawingStroke();
+        return;
+      }
+    }
+
+    // If active in Retouch Studio (Healing Brush, Spot Removal, Clone Stamp, Wrinkles, Skin Smoothing, etc.)
+    if (
+      activeToolTab === 'retouch' &&
+      processedCanvasRef.current &&
+      e.button === 0 &&
+      !e.spaceKey
+    ) {
+      const rect = processedCanvasRef.current.getBoundingClientRect();
+      const normX = Math.max(0, Math.min(1, (e.clientX - rect.left) / (rect.width || 1)));
+      const normY = Math.max(0, Math.min(1, (e.clientY - rect.top) / (rect.height || 1)));
+
+      if (isSettingCloneSource || e.altKey) {
+        onSetCloneSource?.({ x: Number(normX.toFixed(4)), y: Number(normY.toFixed(4)) });
+        if (isSettingCloneSource && onToggleSettingCloneSource) onToggleSettingCloneSource();
+        showToast(
+          'info',
+          'Source Target Sampled',
+          `Clone / Healing source locked at (${Math.round(normX * 100)}%, ${Math.round(normY * 100)}%)`
+        );
+        return;
+      }
+
+      setIsDrawingRetouch(true);
+      const strokeId = `retouch_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const stroke: RetouchStroke = {
+        id: strokeId,
+        type: (activeRetouchTool || 'healing-brush') as RetouchToolType,
+        points: [{ x: Number(normX.toFixed(4)), y: Number(normY.toFixed(4)) }],
+        radius: retouchBrushRadius,
+        feather: retouchBrushFeather,
+        opacity: retouchBrushOpacity,
+        sourcePoint: cloneSource || {
+          x: Math.max(0, Math.min(1, normX + 0.04)),
+          y: Math.max(0, Math.min(1, normY + 0.04)),
+        },
+        active: true,
+        timestamp: Date.now(),
+      };
+      currentRetouchStrokeRef.current = stroke;
+      return;
+    }
 
     // If drawing inpaint mask
     if (activeToolTab === 'ai-tools' && e.button === 0 && !e.altKey && !e.spaceKey) {
@@ -262,6 +625,19 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    // Comparison Split Divider Dragging
+    if (isDraggingSplit && processedCanvasRef.current) {
+      const rect = processedCanvasRef.current.getBoundingClientRect();
+      if (activeComparisonMode === 'split-vertical') {
+        const pos = Math.max(0.01, Math.min(0.99, (e.clientX - rect.left) / (rect.width || 1)));
+        setSplitPos(Number(pos.toFixed(3)));
+      } else if (activeComparisonMode === 'split-horizontal') {
+        const pos = Math.max(0.01, Math.min(0.99, (e.clientY - rect.top) / (rect.height || 1)));
+        setSplitPos(Number(pos.toFixed(3)));
+      }
+      return;
+    }
+
     if (cropDragMode && processedCanvasRef.current) {
       const rect = processedCanvasRef.current.getBoundingClientRect();
       const deltaNormX = (e.clientX - cropDragStart.mouseX) / (rect.width || 1);
@@ -330,6 +706,57 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
       return;
     }
 
+    // Eyedropper Live Sample on Hover
+    if (activeToolTab === 'drawing' && (activeDrawingTool === 'eyedropper' || isEyedropperActive)) {
+      const sample = sampleColorAtPoint(e.clientX, e.clientY);
+      setEyedropperSample(sample);
+      return;
+    }
+
+    // Live Drawing Stroke Point Tracking
+    if (activeToolTab === 'drawing' && isLiveDrawing && currentDrawingStrokeRef.current && processedCanvasRef.current) {
+      const rect = processedCanvasRef.current.getBoundingClientRect();
+      const normX = Math.max(0, Math.min(1, (e.clientX - rect.left) / (rect.width || 1)));
+      const normY = Math.max(0, Math.min(1, (e.clientY - rect.top) / (rect.height || 1)));
+
+      const pts = currentDrawingStrokeRef.current.points;
+      const lastPt = pts[pts.length - 1];
+      const now = Date.now();
+      const dt = Math.max(1, now - (lastPt?.time || now));
+      const dist = Math.hypot(normX - (lastPt?.x || normX), normY - (lastPt?.y || normY));
+      const speed = dist / dt;
+      const calcPressure = drawingPressureSensitivity ? Math.max(0.2, Math.min(1.2, 1 - speed * 5)) : 1;
+
+      if (activeDrawingTool === 'shape') {
+        currentDrawingStrokeRef.current.points = [
+          pts[0],
+          { x: Number(normX.toFixed(4)), y: Number(normY.toFixed(4)), pressure: 1, time: now },
+        ];
+      } else {
+        currentDrawingStrokeRef.current.points.push({
+          x: Number(normX.toFixed(4)),
+          y: Number(normY.toFixed(4)),
+          pressure: calcPressure,
+          time: now,
+        });
+      }
+
+      redrawLiveDrawingStroke();
+      return;
+    }
+
+    // Retouch Stroke Point Tracking
+    if (activeToolTab === 'retouch' && isDrawingRetouch && currentRetouchStrokeRef.current && processedCanvasRef.current) {
+      const rect = processedCanvasRef.current.getBoundingClientRect();
+      const normX = Math.max(0, Math.min(1, (e.clientX - rect.left) / (rect.width || 1)));
+      const normY = Math.max(0, Math.min(1, (e.clientY - rect.top) / (rect.height || 1)));
+      currentRetouchStrokeRef.current.points.push({
+        x: Number(normX.toFixed(4)),
+        y: Number(normY.toFixed(4)),
+      });
+      return;
+    }
+
     // Selective Mask Brush Stroke Tracking
     if (isDrawingSelectiveMask && currentSelectiveStrokeRef.current && processedCanvasRef.current) {
       const rect = processedCanvasRef.current.getBoundingClientRect();
@@ -390,6 +817,50 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
 
   const handleMouseUp = (e: React.MouseEvent) => {
     const dragDistance = Math.hypot(e.clientX - mouseDownPos.x, e.clientY - mouseDownPos.y);
+
+    // Finalize Live Drawing Stroke
+    if (activeToolTab === 'drawing' && isLiveDrawing && currentDrawingStrokeRef.current && onUpdateDrawingStrokes) {
+      const finalStroke = currentDrawingStrokeRef.current;
+      if (finalStroke.points.length > 0) {
+        onUpdateDrawingStrokes([...(project.drawingStrokes || []), finalStroke]);
+      }
+      setIsLiveDrawing(false);
+      currentDrawingStrokeRef.current = null;
+      if (liveDrawingCanvasRef.current) {
+        const ctx = liveDrawingCanvasRef.current.getContext('2d');
+        ctx?.clearRect(0, 0, liveDrawingCanvasRef.current.width, liveDrawingCanvasRef.current.height);
+      }
+      return;
+    }
+
+    // Finalize AI Inpaint Lasso Selection
+    if (isDrawingMask && inpaintDrawMode === 'lasso' && maskCanvasRef.current && lassoPointsRef.current.length > 2) {
+      const mCtx = maskCanvasRef.current.getContext('2d');
+      if (mCtx) {
+        mCtx.save();
+        mCtx.fillStyle = 'rgba(239, 68, 68, 0.75)';
+        mCtx.beginPath();
+        const pts = lassoPointsRef.current;
+        mCtx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          mCtx.lineTo(pts[i].x, pts[i].y);
+        }
+        mCtx.closePath();
+        mCtx.fill();
+        mCtx.restore();
+        setHasMaskDrawn(true);
+      }
+      lassoPointsRef.current = [];
+      setIsDrawingMask(false);
+      return;
+    }
+    if (isDrawingRetouch && currentRetouchStrokeRef.current && onUpdateRetouchStrokes) {
+      const existingStrokes = project.retouchStrokes || [];
+      onUpdateRetouchStrokes([...existingStrokes, currentRetouchStrokeRef.current]);
+      setIsDrawingRetouch(false);
+      currentRetouchStrokeRef.current = null;
+      return;
+    }
 
     // Finalize Selective Mask Brush Stroke
     if (isDrawingSelectiveMask && currentSelectiveStrokeRef.current && selectedMask && onUpdateMasks) {
@@ -576,6 +1047,33 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
     const mCtx = maskCanvasRef.current?.getContext('2d');
     if (!mCtx) return;
 
+    if (inpaintDrawMode === 'lasso') {
+      lassoPointsRef.current = [{ x: coords.x, y: coords.y }];
+      mCtx.save();
+      mCtx.strokeStyle = 'rgba(239, 68, 68, 0.9)';
+      mCtx.lineWidth = 2;
+      mCtx.beginPath();
+      mCtx.moveTo(coords.x, coords.y);
+      return;
+    }
+
+    if (inpaintDrawMode === 'eraser') {
+      mCtx.save();
+      mCtx.globalCompositeOperation = 'destination-out';
+      mCtx.lineWidth = brushSize * (maskCanvasRef.current!.width / (processedCanvasRef.current!.clientWidth || 800));
+      mCtx.lineCap = 'round';
+      mCtx.lineJoin = 'round';
+      mCtx.beginPath();
+      mCtx.arc(coords.x, coords.y, mCtx.lineWidth / 2, 0, Math.PI * 2);
+      mCtx.fill();
+      mCtx.beginPath();
+      mCtx.moveTo(coords.x, coords.y);
+      return;
+    }
+
+    // Default: Brush mode
+    mCtx.save();
+    mCtx.globalCompositeOperation = 'source-over';
     mCtx.strokeStyle = 'rgba(239, 68, 68, 0.75)'; // Semi-transparent Red Highlight
     mCtx.fillStyle = 'rgba(239, 68, 68, 0.75)';
     mCtx.lineWidth = brushSize * (maskCanvasRef.current!.width / (processedCanvasRef.current!.clientWidth || 800));
@@ -594,6 +1092,14 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
     const mCtx = maskCanvasRef.current?.getContext('2d');
     if (!mCtx) return;
     const coords = getCanvasCoords(e);
+
+    if (inpaintDrawMode === 'lasso') {
+      lassoPointsRef.current.push({ x: coords.x, y: coords.y });
+      mCtx.lineTo(coords.x, coords.y);
+      mCtx.stroke();
+      return;
+    }
+
     mCtx.lineTo(coords.x, coords.y);
     mCtx.stroke();
   };
@@ -601,8 +1107,10 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
   const clearMask = () => {
     const mCtx = maskCanvasRef.current?.getContext('2d');
     if (mCtx && maskCanvasRef.current) {
+      mCtx.restore?.();
       mCtx.clearRect(0, 0, maskCanvasRef.current.width, maskCanvasRef.current.height);
       setHasMaskDrawn(false);
+      lassoPointsRef.current = [];
     }
   };
 
@@ -624,17 +1132,20 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
   const handleAiGenerativeInpaint = async () => {
     if (!processedCanvasRef.current || !maskCanvasRef.current) return;
     setIsAiProcessing(true);
-    showToast('info', 'AI Retouching', 'Gemini is reconstructing background and lighting...');
+    showToast('info', 'AI Retouching', 'Gemini is reconstructing background, lighting, and textures...');
 
     try {
       const imgBase64 = processedCanvasRef.current.toDataURL('image/png');
       const maskBase64 = maskCanvasRef.current.toDataURL('image/png');
 
-      const res = await requestAiObjectRemoval(imgBase64, maskBase64, inpaintPrompt.trim() || undefined);
+      const res = await requestAiObjectRemoval(imgBase64, maskBase64, {
+        prompt: inpaintPrompt.trim() || undefined,
+        removeShadows: inpaintRemoveShadows,
+      });
       if (res.success && res.imageUrl) {
         onUpdateImage(res.imageUrl, `AI_Cleaned_${project.name}`);
         clearMask();
-        showToast('success', 'AI Object Erased', 'Seamless background reconstruction complete.');
+        showToast('success', 'AI Object Erased', 'Seamless background and lighting reconstruction complete.');
       } else {
         showToast('error', 'AI Processing Failed', res.message || res.error || 'Could not generate result.');
       }
@@ -675,96 +1186,310 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
         </span>
       </div>
 
-      {/* Comparison Split Mode Selector */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-slate-900/85 backdrop-blur-md border border-slate-800/80 p-1 rounded-xl shadow-xl">
-        <button
-          onClick={() => setComparisonMode(comparisonMode === 'split-vertical' ? 'off' : 'split-vertical')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-            comparisonMode === 'split-vertical'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-          }`}
-          title="Split View (Compare Original vs Edited)"
+      {/* Top Right Floating Comparison Bar */}
+      <ComparisonFloatingBar
+        comparisonMode={activeComparisonMode}
+        onChangeMode={setComparisonMode}
+        isShowingBeforeToggle={isShowingBeforeToggle}
+        onToggleBeforeAfter={() => setIsShowingBeforeToggle((prev) => !prev)}
+        isHoldingBefore={isHoldingBefore}
+        onHoldBeforeStart={() => setIsHoldingBefore(true)}
+        onHoldBeforeEnd={() => setIsHoldingBefore(false)}
+        splitPos={splitPos}
+        onChangeSplitPos={setSplitPos}
+        opacityBlend={opacityBlend}
+        onChangeOpacityBlend={setOpacityBlend}
+        differenceAmp={differenceAmp}
+        onChangeDifferenceAmp={setDifferenceAmp}
+      />
+
+      {/* Real-time Status Badge for Holding / Toggle / Diff Mode */}
+      {(isHoldingBefore || (activeComparisonMode === 'toggle' && isShowingBeforeToggle)) && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-amber-500 text-slate-950 px-3.5 py-1.5 rounded-full font-black text-xs tracking-wider uppercase shadow-2xl flex items-center gap-2 animate-bounce ring-2 ring-amber-300">
+          <Eye className="w-4 h-4" />
+          <span>Viewing Original (Before)</span>
+        </div>
+      )}
+
+      {activeComparisonMode === 'toggle' && !isShowingBeforeToggle && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-indigo-600 text-white px-3.5 py-1.5 rounded-full font-black text-xs tracking-wider uppercase shadow-2xl flex items-center gap-2 ring-2 ring-indigo-400">
+          <Sparkles className="w-4 h-4" />
+          <span>Viewing Edited (After)</span>
+        </div>
+      )}
+
+      {activeComparisonMode === 'opacity-blend' && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-purple-950/90 text-purple-200 border border-purple-500/50 px-3 py-1 rounded-full text-[11px] font-bold shadow-xl backdrop-blur-md">
+          Blend: {100 - opacityBlend}% Original / {opacityBlend}% Edited
+        </div>
+      )}
+
+      {/* Side-by-Side Dual Viewport Mode */}
+      {activeComparisonMode === 'side-by-side' ? (
+        <div
+          className="flex items-center justify-center gap-6 transition-transform duration-75 ease-out"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale * 0.75})`,
+            transformOrigin: 'center center',
+          }}
         >
-          <Columns className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Split View</span>
-        </button>
-
-        <button
-          onMouseDown={() => setIsHoldingBefore(true)}
-          onMouseUp={() => setIsHoldingBefore(false)}
-          onMouseLeave={() => setIsHoldingBefore(false)}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-            isHoldingBefore ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-          }`}
-          title="Hold to see Original (\)"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Hold Original</span>
-        </button>
-      </div>
-
-      {/* Main Scaled & Panned Canvas Workspace */}
-      <div
-        className="relative transition-transform duration-75 ease-out shadow-2xl rounded-sm"
-        style={{
-          transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-          transformOrigin: 'center center',
-        }}
-      >
-        {/* Hidden Canvas for Original Image Buffer */}
-        <canvas ref={originalCanvasRef} className="hidden" />
-
-        {/* Processed Final Canvas (or Original if holding) */}
-        <canvas
-          ref={processedCanvasRef}
-          className={`block max-w-none shadow-2xl rounded-sm ${
-            isHoldingBefore ? 'opacity-0' : 'opacity-100'
-          }`}
-        />
-
-        {/* Before / After Vertical Split Overlay */}
-        {comparisonMode === 'split-vertical' && originalCanvasRef.current && sourceImageRef.current && (
-          <div
-            className="absolute inset-0 overflow-hidden pointer-events-none"
-            style={{ width: `${splitPos * 100}%`, borderRight: '2px solid rgba(255, 255, 255, 0.9)' }}
-          >
+          {/* Left Screen: Original */}
+          <div className="relative border-2 border-slate-700/80 rounded-lg overflow-hidden shadow-2xl bg-slate-900">
+            <div className="absolute top-3 left-3 z-30 bg-black/85 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black text-amber-400 uppercase tracking-wider border border-amber-500/40 shadow-lg flex items-center gap-1.5">
+              <Eye className="w-3.5 h-3.5 text-amber-400" />
+              <span>Original (Before)</span>
+            </div>
             <img
               src={project.image.originalUrl}
               alt="Original"
-              className="absolute top-0 left-0 max-w-none pointer-events-none"
+              className="block max-w-none pointer-events-none"
               style={{
                 width: processedCanvasRef.current?.width || '100%',
                 height: processedCanvasRef.current?.height || '100%',
               }}
             />
-            <div className="absolute top-3 left-3 bg-black/75 backdrop-blur-md px-2 py-1 rounded text-[11px] font-bold text-white uppercase tracking-wider border border-white/20">
-              Original (Before)
-            </div>
           </div>
-        )}
 
-        {/* Split Divider Handle */}
-        {comparisonMode === 'split-vertical' && (
-          <div
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              setIsDraggingSplit(true);
-            }}
-            className="absolute top-0 bottom-0 w-8 -ml-4 flex items-center justify-center cursor-ew-resize z-30 group"
-            style={{ left: `${splitPos * 100}%` }}
-          >
-            <div className="w-6 h-6 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-2xl text-[10px] font-black group-hover:scale-110 transition-transform">
-              ↔
+          {/* Right Screen: Edited */}
+          <div className="relative border-2 border-indigo-500/60 rounded-lg overflow-hidden shadow-2xl bg-slate-900">
+            <div className="absolute top-3 left-3 z-30 bg-indigo-950/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black text-indigo-300 uppercase tracking-wider border border-indigo-500/50 shadow-lg flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Edited (After)</span>
             </div>
+            <canvas
+              ref={processedCanvasRef}
+              className="block max-w-none shadow-2xl"
+            />
           </div>
-        )}
+        </div>
+      ) : activeComparisonMode === 'top-bottom' ? (
+        <div
+          className="flex flex-col items-center justify-center gap-6 transition-transform duration-75 ease-out"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale * 0.65})`,
+            transformOrigin: 'center center',
+          }}
+        >
+          {/* Top Screen: Original */}
+          <div className="relative border-2 border-slate-700/80 rounded-lg overflow-hidden shadow-2xl bg-slate-900">
+            <div className="absolute top-3 left-3 z-30 bg-black/85 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black text-amber-400 uppercase tracking-wider border border-amber-500/40 shadow-lg flex items-center gap-1.5">
+              <Eye className="w-3.5 h-3.5 text-amber-400" />
+              <span>Original (Before)</span>
+            </div>
+            <img
+              src={project.image.originalUrl}
+              alt="Original"
+              className="block max-w-none pointer-events-none"
+              style={{
+                width: processedCanvasRef.current?.width || '100%',
+                height: processedCanvasRef.current?.height || '100%',
+              }}
+            />
+          </div>
+
+          {/* Bottom Screen: Edited */}
+          <div className="relative border-2 border-indigo-500/60 rounded-lg overflow-hidden shadow-2xl bg-slate-900">
+            <div className="absolute top-3 left-3 z-30 bg-indigo-950/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black text-indigo-300 uppercase tracking-wider border border-indigo-500/50 shadow-lg flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Edited (After)</span>
+            </div>
+            <canvas
+              ref={processedCanvasRef}
+              className="block max-w-none shadow-2xl"
+            />
+          </div>
+        </div>
+      ) : (
+        /* Standard Scaled & Panned Canvas Workspace */
+        <div
+          className="relative transition-transform duration-75 ease-out shadow-2xl rounded-sm"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+            transformOrigin: 'center center',
+          }}
+        >
+          {/* Hidden Canvas for Original Image Buffer */}
+          <canvas ref={originalCanvasRef} className="hidden" />
+
+          {/* Difference Canvas for Heatmap delta */}
+          <canvas
+            ref={differenceCanvasRef}
+            className={`absolute inset-0 pointer-events-none z-10 ${
+              activeComparisonMode === 'difference' ? 'block' : 'hidden'
+            }`}
+          />
+
+          {/* Processed Final Canvas (or Original if holding/toggled) */}
+          <canvas
+            ref={processedCanvasRef}
+            className={`block max-w-none shadow-2xl rounded-sm ${
+              isHoldingBefore || (activeComparisonMode === 'toggle' && isShowingBeforeToggle)
+                ? 'opacity-0'
+                : 'opacity-100'
+            }`}
+          />
+
+          {/* Full Original Image when Holding or Toggled to Before */}
+          {(isHoldingBefore || (activeComparisonMode === 'toggle' && isShowingBeforeToggle)) && (
+            <img
+              src={project.image.originalUrl}
+              alt="Original unedited"
+              className="absolute inset-0 max-w-none pointer-events-none"
+              style={{
+                width: processedCanvasRef.current?.width || '100%',
+                height: processedCanvasRef.current?.height || '100%',
+              }}
+            />
+          )}
+
+          {/* Opacity Crossfade Blend Mode Overlay */}
+          {activeComparisonMode === 'opacity-blend' && (
+            <img
+              src={project.image.originalUrl}
+              alt="Original blend"
+              className="absolute inset-0 max-w-none pointer-events-none"
+              style={{
+                width: processedCanvasRef.current?.width || '100%',
+                height: processedCanvasRef.current?.height || '100%',
+                opacity: (100 - opacityBlend) / 100,
+              }}
+            />
+          )}
+
+          {/* Before / After Vertical Split Overlay */}
+          {activeComparisonMode === 'split-vertical' && (
+            <>
+              <div
+                className="absolute inset-0 overflow-hidden pointer-events-none z-10"
+                style={{
+                  width: `${splitPos * 100}%`,
+                  borderRight: '2px solid rgba(255, 255, 255, 0.95)',
+                  boxShadow: '2px 0 15px rgba(0, 0, 0, 0.5)',
+                }}
+              >
+                <img
+                  src={project.image.originalUrl}
+                  alt="Original"
+                  className="absolute top-0 left-0 max-w-none pointer-events-none"
+                  style={{
+                    width: processedCanvasRef.current?.width || '100%',
+                    height: processedCanvasRef.current?.height || '100%',
+                  }}
+                />
+                <div className="absolute top-3 left-3 bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-black text-amber-300 uppercase tracking-wider border border-amber-500/40 shadow-lg">
+                  Before (Original)
+                </div>
+              </div>
+
+              {/* Edited After Badge on right */}
+              <div className="absolute top-3 right-3 z-10 bg-indigo-950/85 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-black text-indigo-300 uppercase tracking-wider border border-indigo-500/40 shadow-lg pointer-events-none">
+                After (Edited)
+              </div>
+
+              {/* Vertical Split Divider Handle */}
+              <div
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setIsDraggingSplit(true);
+                }}
+                className="absolute top-0 bottom-0 w-10 -ml-5 flex items-center justify-center cursor-ew-resize z-30 group select-none"
+                style={{ left: `${splitPos * 100}%` }}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <div className="px-2 py-0.5 rounded-full bg-slate-950/90 text-white font-mono text-[9px] font-bold border border-white/30 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity">
+                    {Math.round(splitPos * 100)}%
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-2xl text-xs font-black group-hover:scale-110 transition-transform ring-2 ring-indigo-500">
+                    ↔
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Before / After Horizontal Split Overlay */}
+          {activeComparisonMode === 'split-horizontal' && (
+            <>
+              <div
+                className="absolute inset-0 overflow-hidden pointer-events-none z-10"
+                style={{
+                  height: `${splitPos * 100}%`,
+                  borderBottom: '2px solid rgba(255, 255, 255, 0.95)',
+                  boxShadow: '0 2px 15px rgba(0, 0, 0, 0.5)',
+                }}
+              >
+                <img
+                  src={project.image.originalUrl}
+                  alt="Original"
+                  className="absolute top-0 left-0 max-w-none pointer-events-none"
+                  style={{
+                    width: processedCanvasRef.current?.width || '100%',
+                    height: processedCanvasRef.current?.height || '100%',
+                  }}
+                />
+                <div className="absolute top-3 left-3 bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-black text-amber-300 uppercase tracking-wider border border-amber-500/40 shadow-lg">
+                  Before (Top)
+                </div>
+              </div>
+
+              {/* Edited After Badge on bottom */}
+              <div className="absolute bottom-3 left-3 z-10 bg-indigo-950/85 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-black text-indigo-300 uppercase tracking-wider border border-indigo-500/40 shadow-lg pointer-events-none">
+                After (Bottom)
+              </div>
+
+              {/* Horizontal Split Divider Handle */}
+              <div
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setIsDraggingSplit(true);
+                }}
+                className="absolute left-0 right-0 h-10 -mt-5 flex items-center justify-center cursor-ns-resize z-30 group select-none"
+                style={{ top: `${splitPos * 100}%` }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <div className="w-7 h-7 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-2xl text-xs font-black group-hover:scale-110 transition-transform ring-2 ring-indigo-500">
+                    ↕
+                  </div>
+                  <div className="px-2 py-0.5 rounded-full bg-slate-950/90 text-white font-mono text-[9px] font-bold border border-white/30 shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity">
+                    {Math.round(splitPos * 100)}%
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
         {/* Inpainting Mask Canvas Overlay */}
         <canvas
           ref={maskCanvasRef}
           className={`absolute inset-0 pointer-events-none ${activeToolTab === 'ai-tools' ? 'opacity-90' : 'opacity-0'}`}
         />
+
+        {/* Live Drawing In-Progress Overlay Canvas */}
+        <canvas
+          ref={liveDrawingCanvasRef}
+          className={`absolute inset-0 pointer-events-none z-20 ${activeToolTab === 'drawing' ? 'block' : 'hidden'}`}
+        />
+
+        {/* Retouch Studio Clone Source Marker & Visual Handles */}
+        {activeToolTab === 'retouch' && (
+          <div className="absolute inset-0 pointer-events-none z-30">
+            {/* Clone / Healing Sample Source Reticle */}
+            {cloneSource && (
+              <div
+                className="absolute w-8 h-8 -ml-4 -mt-4 rounded-full border-2 border-rose-500 bg-rose-500/20 flex items-center justify-center animate-pulse z-40 shadow-lg shadow-rose-950/60"
+                style={{
+                  left: `${cloneSource.x * 100}%`,
+                  top: `${cloneSource.y * 100}%`,
+                }}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-wider px-1 py-0.5 rounded bg-rose-950/90 text-rose-300 border border-rose-600/40 whitespace-nowrap">
+                  Source ({Math.round(cloneSource.x * 100)}%, {Math.round(cloneSource.y * 100)}%)
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Interactive Selective Mask Visual Handles & Overlays */}
         {activeToolTab === 'masks' && selectedMask && (
@@ -1014,67 +1739,161 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
           </div>
         )}
       </div>
+      )}
 
-      {/* AI Inpainting Floating Floating Toolbar when in AI tools mode */}
+      {/* AI Inpainting Floating Toolbar when in AI tools mode */}
       {activeToolTab === 'ai-tools' && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 p-3 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-center gap-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
-            <Eraser className="w-4 h-4 text-rose-400" />
-            <span>Brush Size:</span>
-            <input
-              type="range"
-              min="8"
-              max="120"
-              value={brushSize}
-              onChange={(e) => setBrushSize(Number(e.target.value))}
-              className="w-24 accent-rose-500 cursor-pointer"
-            />
-            <span className="w-6 text-right font-mono">{brushSize}px</span>
-          </div>
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 p-2.5 rounded-2xl shadow-2xl flex flex-col items-center gap-2 max-w-[95vw]">
+          {/* Quick Suggestions Chips Popover */}
+          {showPromptChips && (
+            <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-950/90 rounded-xl border border-slate-800 text-[11px] w-full animate-in fade-in slide-in-from-bottom-2">
+              <span className="text-slate-500 font-bold text-[10px] uppercase">Suggestions:</span>
+              {[
+                'Remove person & shadow',
+                'Remove power lines',
+                'Remove watermark / text',
+                'Remove vehicles',
+                'Remove window reflection',
+                'Clean background clutter',
+              ].map((chip, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setInpaintPrompt(chip);
+                    setShowPromptChips(false);
+                  }}
+                  className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-300 transition-colors"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          )}
 
-          <div className="h-4 w-[1px] bg-slate-700 hidden sm:block" />
-
-          {/* Quick Prompt Hint for AI Object Removal */}
-          <input
-            type="text"
-            placeholder="Optional prompt (e.g. remove person, clean background)"
-            value={inpaintPrompt}
-            onChange={(e) => setInpaintPrompt(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-xs text-slate-200 px-2.5 py-1 rounded-lg w-56 outline-none focus:border-indigo-500"
-          />
-
-          <div className="flex items-center gap-1.5">
-            {/* Instant Offline Inpaint */}
-            <button
-              onClick={handleInstantOfflineInpaint}
-              disabled={!hasMaskDrawn || isAiProcessing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-40 transition-all"
-              title="Fast Offline Texture Synthesis (No internet needed)"
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>Fast Patch</span>
-            </button>
-
-            {/* AI Generative Inpaint */}
-            <button
-              onClick={handleAiGenerativeInpaint}
-              disabled={!hasMaskDrawn || isAiProcessing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white shadow-lg shadow-rose-600/30 disabled:opacity-40 transition-all"
-            >
-              <Sparkles className={`w-3.5 h-3.5 ${isAiProcessing ? 'animate-spin' : ''}`} />
-              <span>AI Erase Object</span>
-            </button>
-
-            {/* Clear Mask */}
-            {hasMaskDrawn && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Draw Mode Selector: Brush / Lasso / Eraser */}
+            <div className="flex items-center bg-slate-950 p-0.5 rounded-xl border border-slate-800 text-xs font-bold">
               <button
-                onClick={clearMask}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
-                title="Clear Mask"
+                onClick={() => setInpaintDrawMode('brush')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors ${
+                  inpaintDrawMode === 'brush'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Brush Mask (paint over target)"
               >
-                <Trash2 className="w-4 h-4" />
+                <Paintbrush className="w-3.5 h-3.5" />
+                <span>Brush</span>
               </button>
+
+              <button
+                onClick={() => setInpaintDrawMode('lasso')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors ${
+                  inpaintDrawMode === 'lasso'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Lasso Selection (draw around object to auto-fill)"
+              >
+                <Scissors className="w-3.5 h-3.5" />
+                <span>Lasso</span>
+              </button>
+
+              <button
+                onClick={() => setInpaintDrawMode('eraser')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors ${
+                  inpaintDrawMode === 'eraser'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Eraser (clean up mask edges)"
+              >
+                <Eraser className="w-3.5 h-3.5" />
+                <span>Erase</span>
+              </button>
+            </div>
+
+            {/* Brush Size Slider (when in brush or eraser mode) */}
+            {inpaintDrawMode !== 'lasso' && (
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                <span className="text-slate-400">Size:</span>
+                <input
+                  type="range"
+                  min="6"
+                  max="140"
+                  value={brushSize}
+                  onChange={(e) => setBrushSize(Number(e.target.value))}
+                  className="w-20 accent-rose-500 cursor-pointer"
+                />
+                <span className="w-6 text-right font-mono text-rose-300 text-[11px]">{brushSize}px</span>
+              </div>
             )}
+
+            <div className="h-4 w-[1px] bg-slate-700 hidden sm:block" />
+
+            {/* Prompt Input with Quick Chips Trigger */}
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                placeholder="e.g. Remove this person"
+                value={inpaintPrompt}
+                onChange={(e) => setInpaintPrompt(e.target.value)}
+                className="bg-slate-950 border border-slate-800 text-xs text-slate-200 pl-2.5 pr-6 py-1 rounded-lg w-48 sm:w-56 outline-none focus:border-rose-500 transition-colors"
+              />
+              <button
+                onClick={() => setShowPromptChips((prev) => !prev)}
+                className="absolute right-1.5 text-slate-400 hover:text-rose-400 p-0.5"
+                title="Toggle Suggestion Chips"
+              >
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showPromptChips ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+
+            {/* Remove Shadows Toggle */}
+            <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer bg-slate-950/70 border border-slate-800 px-2 py-1 rounded-lg hover:border-slate-700">
+              <input
+                type="checkbox"
+                checked={inpaintRemoveShadows}
+                onChange={(e) => setInpaintRemoveShadows(e.target.checked)}
+                className="w-3.5 h-3.5 rounded accent-rose-500 cursor-pointer"
+              />
+              <span className="text-[11px]">Shadows</span>
+            </label>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1.5">
+              {/* Instant Offline Fast Patch */}
+              <button
+                onClick={handleInstantOfflineInpaint}
+                disabled={!hasMaskDrawn || isAiProcessing}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-40 transition-all border border-slate-700"
+                title="Fast Client-Side Texture Synthesis (Offline)"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span>Fast Patch</span>
+              </button>
+
+              {/* Generative AI Erase */}
+              <button
+                onClick={handleAiGenerativeInpaint}
+                disabled={!hasMaskDrawn || isAiProcessing}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white shadow-lg shadow-rose-600/30 disabled:opacity-40 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${isAiProcessing ? 'animate-spin' : ''}`} />
+                <span>AI Erase</span>
+              </button>
+
+              {/* Clear Mask */}
+              {hasMaskDrawn && (
+                <button
+                  onClick={clearMask}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                  title="Clear Mask"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1176,6 +1995,193 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
               <span className="text-[11px] text-slate-400">Drag circle pins directly on photo to position</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Retouch Studio Floating Quick Toolbar when in Retouch mode */}
+      {activeToolTab === 'retouch' && (
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 p-2.5 rounded-2xl shadow-2xl flex flex-wrap items-center gap-3">
+          {/* Active Tool Tag */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-950/80 border border-rose-500/30 text-rose-300 text-xs font-bold capitalize">
+            <Bandage className="w-3.5 h-3.5 text-rose-400" />
+            <span>{activeRetouchTool.replace('-', ' ')}</span>
+          </div>
+
+          <div className="h-4 w-[1px] bg-slate-700 hidden sm:block" />
+
+          {/* Quick Brush Size Slider */}
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
+            <span>Size:</span>
+            <input
+              type="range"
+              min="2"
+              max="200"
+              value={retouchBrushRadius}
+              onChange={(e) => onChangeRetouchBrushRadius?.(Number(e.target.value))}
+              className="w-20 accent-rose-500 cursor-pointer"
+            />
+            <span className="w-8 text-right font-mono text-rose-300">{retouchBrushRadius}px</span>
+          </div>
+
+          {/* Quick Feather Slider */}
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 hidden md:flex">
+            <span>Feather:</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={retouchBrushFeather}
+              onChange={(e) => onChangeRetouchBrushFeather?.(Number(e.target.value))}
+              className="w-16 accent-rose-500 cursor-pointer"
+            />
+            <span className="w-7 text-right font-mono text-rose-300">{retouchBrushFeather}%</span>
+          </div>
+
+          {/* Set Source Point for Clone / Healing */}
+          {(activeRetouchTool === 'clone-stamp' || activeRetouchTool === 'healing-brush') && (
+            <button
+              onClick={onToggleSettingCloneSource}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                isSettingCloneSource
+                  ? 'bg-rose-600 text-white animate-pulse shadow-md shadow-rose-600/40'
+                  : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
+              }`}
+            >
+              <Crosshair className="w-3.5 h-3.5" />
+              <span>{isSettingCloneSource ? 'Click Canvas...' : 'Set Source'}</span>
+            </button>
+          )}
+
+          {/* Retouch Action Buttons (Undo & Clear) */}
+          {project.retouchStrokes && project.retouchStrokes.length > 0 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  if (onUpdateRetouchStrokes) {
+                    onUpdateRetouchStrokes(project.retouchStrokes.slice(0, -1));
+                    showToast('info', 'Undo', 'Removed last retouch stroke');
+                  }
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                title="Undo last stroke"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+                <span>Undo</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (onUpdateRetouchStrokes) {
+                    onUpdateRetouchStrokes([]);
+                    showToast('info', 'Retouch Reset', 'Cleared all retouch strokes');
+                  }
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                title="Clear all strokes"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Clear</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Drawing Studio Floating Quick Toolbar */}
+      {activeToolTab === 'drawing' && (
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 p-2.5 rounded-2xl shadow-2xl flex flex-wrap items-center gap-3">
+          {/* Active Drawing Tool Tag */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 text-xs font-bold capitalize">
+            <Paintbrush className="w-3.5 h-3.5 text-indigo-400" />
+            <span>{activeDrawingTool.replace('-', ' ')}</span>
+          </div>
+
+          <div className="h-4 w-[1px] bg-slate-700 hidden sm:block" />
+
+          {/* Quick Color Swatch */}
+          <div className="flex items-center gap-2">
+            <div
+              className="w-5 h-5 rounded-full border-2 border-white/60 shadow-sm cursor-pointer"
+              style={{ backgroundColor: drawingBrushColor }}
+            />
+            <span className="text-[11px] font-mono font-bold text-slate-300">{drawingBrushColor.toUpperCase()}</span>
+          </div>
+
+          <div className="h-4 w-[1px] bg-slate-700 hidden sm:block" />
+
+          {/* Quick Brush Size Slider */}
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
+            <span>Size:</span>
+            <input
+              type="range"
+              min="1"
+              max="160"
+              value={drawingBrushSize}
+              onChange={(e) => onChangeDrawingBrushSize?.(Number(e.target.value))}
+              className="w-20 accent-indigo-500 cursor-pointer"
+            />
+            <span className="w-7 text-right font-mono text-indigo-300">{drawingBrushSize}px</span>
+          </div>
+
+          {/* Eyedropper Toggle */}
+          <button
+            onClick={() => onToggleEyedropper?.(!isEyedropperActive)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              isEyedropperActive
+                ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/30 animate-pulse'
+                : 'bg-slate-800 text-slate-300 hover:text-white border border-slate-700'
+            }`}
+            title="Sample Color From Canvas"
+          >
+            <Pipette className="w-3.5 h-3.5" />
+            <span>{isEyedropperActive ? 'Click to Pick' : 'Eyedropper'}</span>
+          </button>
+
+          {/* Undo Drawing Stroke */}
+          {project.drawingStrokes && project.drawingStrokes.length > 0 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  if (onUpdateDrawingStrokes) {
+                    onUpdateDrawingStrokes(project.drawingStrokes.slice(0, -1));
+                    showToast('info', 'Undo', 'Removed last drawing stroke');
+                  }
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                title="Undo last stroke"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+                <span>Undo</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Eyedropper Magnifier Loupe Ring */}
+      {eyedropperSample && (isEyedropperActive || activeDrawingTool === 'eyedropper') && (
+        <div
+          className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-full mb-4 flex flex-col items-center animate-in fade-in zoom-in-95 duration-100"
+          style={{
+            left: `${eyedropperSample.clientX}px`,
+            top: `${eyedropperSample.clientY}px`,
+          }}
+        >
+          <div className="relative w-16 h-16 rounded-full border-4 border-white shadow-2xl overflow-hidden flex items-center justify-center bg-slate-950">
+            {/* Loupe Color Circle */}
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: eyedropperSample.hex }}
+            />
+            {/* Center Crosshair */}
+            <div className="absolute w-2 h-2 rounded-full border border-white bg-black/40 shadow-xs" />
+            <div className="absolute w-full h-[1px] bg-white/40" />
+            <div className="absolute h-full w-[1px] bg-white/40" />
+          </div>
+          {/* Hex Tag Badge */}
+          <div className="mt-1 px-2 py-0.5 rounded-full bg-slate-950/90 text-white font-mono text-[10px] font-bold border border-white/30 shadow-lg whitespace-nowrap">
+            {eyedropperSample.hex.toUpperCase()}
+          </div>
         </div>
       )}
 

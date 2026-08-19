@@ -78,7 +78,12 @@ export const MasksPanel: React.FC<MasksPanelProps> = ({
     }
   };
 
-  const createMask = (type: SelectiveMaskType, name: string, initialAdjustments?: Partial<MaskAdjustments>) => {
+  const createMask = (
+    type: SelectiveMaskType,
+    name: string,
+    initialAdjustments?: Partial<MaskAdjustments>,
+    extra?: Partial<SelectiveMask>
+  ) => {
     const id = `mask_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const newMask: SelectiveMask = {
       id,
@@ -87,7 +92,11 @@ export const MasksPanel: React.FC<MasksPanelProps> = ({
       visible: true,
       inverted: false,
       feather: 50,
+      density: 100,
       opacity: 100,
+      refineEdge: 0,
+      refineSmooth: 0,
+      refineContrast: 0,
       showOverlay: true,
       overlayColor: 'ruby',
       // Coordinates / defaults based on type
@@ -105,11 +114,13 @@ export const MasksPanel: React.FC<MasksPanelProps> = ({
       lumMax: 255,
       lumFeather: 25,
       aiSensitivity: 50,
+      aiPrompt: 'subject',
       brushStrokes: [],
       adjustments: {
         ...DEFAULT_MASK_ADJUSTMENTS,
         ...initialAdjustments,
       },
+      ...extra,
     };
 
     const nextMasks = [newMask, ...masks];
@@ -402,6 +413,17 @@ export const MasksPanel: React.FC<MasksPanelProps> = ({
                     <div className="text-[10px] text-slate-400">Click any element</div>
                   </div>
                 </button>
+
+                <button
+                  onClick={() => createMask('ai-generated', `AI Mask ${masks.length + 1}`, { exposure: 20 }, { aiPrompt: 'subject' })}
+                  className="flex items-center gap-2 p-2 rounded-xl bg-slate-950/80 hover:bg-fuchsia-950/40 border border-slate-800 hover:border-fuchsia-500/40 text-left transition-all text-xs font-medium col-span-2"
+                >
+                  <Sparkles className="w-4 h-4 text-fuchsia-400 shrink-0" />
+                  <div>
+                    <div className="font-bold text-slate-200">AI-Generated Prompt Mask</div>
+                    <div className="text-[10px] text-slate-400">Type any concept (e.g. "sunglasses", "sports car", "water")</div>
+                  </div>
+                </button>
               </div>
             </div>
           </div>
@@ -658,6 +680,45 @@ export const MasksPanel: React.FC<MasksPanelProps> = ({
                 </div>
               </div>
             )}
+
+            {selectedMask.type === 'ai-generated' && (
+              <div className="p-2.5 bg-slate-950/60 rounded-xl border border-fuchsia-500/30 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-fuchsia-300">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>AI Prompt Segmentation</span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Describe any object, feature, or tone to generate an intelligent semantic isolation mask.
+                </p>
+
+                <div className="space-y-1.5">
+                  <input
+                    type="text"
+                    value={selectedMask.aiPrompt ?? 'subject'}
+                    onChange={(e) => updateSelectedMask({ aiPrompt: e.target.value })}
+                    placeholder="e.g. sunglasses, sports car, green foliage, sky, water..."
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-fuchsia-500"
+                  />
+
+                  {/* Quick Preset Prompt Tags */}
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {['subject', 'sky', 'water', 'trees', 'face', 'hair', 'shadows', 'highlights', 'red objects'].map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => updateSelectedMask({ aiPrompt: tag })}
+                        className={`text-[10px] px-2 py-0.5 rounded-md font-medium border transition-colors ${
+                          selectedMask.aiPrompt === tag
+                            ? 'bg-fuchsia-600/30 text-fuchsia-300 border-fuchsia-500/50'
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Adjustment Category Tabs */}
@@ -884,21 +945,21 @@ export const MasksPanel: React.FC<MasksPanelProps> = ({
             </div>
           )}
 
-          {/* 4. Feather & Opacity Refine Controls */}
+          {/* 4. Feather, Density & Edge Refinement Controls */}
           {activeSection === 'refine' && (
             <div className="space-y-3">
               {renderSlider(
-                'Overall Mask Opacity',
-                selectedMask.opacity ?? 100,
+                'Mask Density (Strength)',
+                selectedMask.density ?? selectedMask.opacity ?? 100,
                 0,
                 100,
-                (v) => updateSelectedMask({ opacity: v }),
+                (v) => updateSelectedMask({ density: v, opacity: v }),
                 'accent-indigo-500',
                 '%'
               )}
 
               {renderSlider(
-                'Feather (Edge Softness)',
+                'Mask Feathering (Softness)',
                 selectedMask.feather,
                 0,
                 100,
@@ -906,6 +967,43 @@ export const MasksPanel: React.FC<MasksPanelProps> = ({
                 'accent-pink-500',
                 '%'
               )}
+
+              {/* Edge Refinement Group */}
+              <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-3">
+                <div className="text-[11px] font-black uppercase text-indigo-300 tracking-wider">
+                  Edge Refinement & Boundary Tuning
+                </div>
+
+                {renderSlider(
+                  'Shift Edge (Contract / Expand)',
+                  selectedMask.refineEdge ?? 0,
+                  -100,
+                  100,
+                  (v) => updateSelectedMask({ refineEdge: v }),
+                  'accent-cyan-500',
+                  '%'
+                )}
+
+                {renderSlider(
+                  'Edge Smoothing',
+                  selectedMask.refineSmooth ?? 0,
+                  0,
+                  100,
+                  (v) => updateSelectedMask({ refineSmooth: v }),
+                  'accent-emerald-500',
+                  '%'
+                )}
+
+                {renderSlider(
+                  'Edge Contrast (Steepness)',
+                  selectedMask.refineContrast ?? 0,
+                  0,
+                  100,
+                  (v) => updateSelectedMask({ refineContrast: v }),
+                  'accent-amber-500',
+                  '%'
+                )}
+              </div>
 
               {/* Overlay Color Selector */}
               <div className="space-y-1.5 pt-1">
@@ -1003,6 +1101,8 @@ function getMaskIcon(type: SelectiveMaskType) {
       return <Shirt className="w-3.5 h-3.5 text-teal-400 shrink-0" />;
     case 'ai-object':
       return <Crosshair className="w-3.5 h-3.5 text-violet-400 shrink-0" />;
+    case 'ai-generated':
+      return <Sparkles className="w-3.5 h-3.5 text-fuchsia-400 shrink-0" />;
     default:
       return <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />;
   }

@@ -1,4 +1,4 @@
-import { AdjustmentSettings, CropSettings, HSLSettings, ToneCurves, WatermarkSettings, BorderSettings, Project } from '../types/editor';
+import { AdjustmentSettings, CropSettings, HSLSettings, ToneCurves, WatermarkSettings, BorderSettings, Project, CollageSettings } from '../types/editor';
 
 export const DEFAULT_ADJUSTMENTS: AdjustmentSettings = {
   exposure: 0,
@@ -284,6 +284,41 @@ export const DEFAULT_BORDER: BorderSettings = {
   captionText: '',
 };
 
+export const DEFAULT_COLLAGE: CollageSettings = {
+  enabled: false,
+  mode: 'grid',
+  aspectRatio: '1:1',
+  layout: 'grid-2x2',
+  spacing: 16,
+  padding: 24,
+  cornerRadius: 12,
+  outerBorder: {
+    enabled: false,
+    size: 16,
+    color: '#ffffff',
+    style: 'solid',
+  },
+  background: {
+    type: 'solid',
+    solidColor: '#0f172a',
+    gradient: {
+      type: 'linear',
+      angle: 135,
+      stops: [
+        { color: '#0f172a', offset: 0 },
+        { color: '#1e1b4b', offset: 1 },
+      ],
+    },
+    pattern: 'polka-dots',
+    patternScale: 1.0,
+    patternColor: 'rgba(255, 255, 255, 0.08)',
+    blurAmount: 20,
+  },
+  items: [],
+  activeItemId: null,
+  autoArrangeBy: 'aspect-fit',
+};
+
 export const DEFAULT_PROJECT_STATE: Project = {
   id: 'proj_default',
   name: 'Untitled Master',
@@ -308,6 +343,12 @@ export const DEFAULT_PROJECT_STATE: Project = {
   watermark: DEFAULT_WATERMARK,
   border: DEFAULT_BORDER,
   masks: [],
+  layers: [],
+  typography: [],
+  designElements: [],
+  retouchStrokes: [],
+  collage: DEFAULT_COLLAGE,
+  drawingStrokes: [],
   history: [],
   historyIndex: 0,
   snapshots: [],

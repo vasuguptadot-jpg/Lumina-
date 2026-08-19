@@ -10,13 +10,14 @@ import {
   HardDrive,
   Maximize2,
 } from 'lucide-react';
-import { Project } from '../../types/editor';
+import { Project, FilterPreset } from '../../types/editor';
 import { exportHighResImage, triggerDownload } from '../../engine/exportEngine';
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   project: Project;
+  customPresets?: FilterPreset[];
   showToast: (type: 'success' | 'error' | 'info', title: string, msg?: string) => void;
 }
 
@@ -24,6 +25,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   isOpen,
   onClose,
   project,
+  customPresets = [],
   showToast,
 }) => {
   if (!isOpen) return null;
@@ -88,9 +90,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         hsl: project.hsl,
         activePresetId: project.activePresetId,
         presetStrength: project.presetStrength,
+        customPresets,
         watermark: includeWatermark ? project.watermark : undefined,
         border: project.border,
         masks: project.masks,
+        retouchStrokes: project.retouchStrokes,
+        typography: project.typography,
+        designElements: project.designElements,
+        drawingStrokes: project.drawingStrokes,
         exportConfig: {
           format,
           quality,

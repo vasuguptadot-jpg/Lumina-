@@ -7,8 +7,12 @@ import {
   WatermarkSettings,
   SelectiveMask,
   FilterPreset,
+  RetouchStroke,
+  TypographyItem,
+  DesignElementItem,
+  DrawingStroke,
 } from '../types/editor';
-import { FILTER_PRESETS } from './presets';
+import { FILTER_PRESETS, getPresetById } from './presets';
 import { getPresetLUT, parseCubeLUT, sample3DLUT, Parsed3DLUT } from './lutEngine';
 import { getCameraProfile, applyCameraProfilePixel } from './cameraProfiles';
 import { kelvinAndTintToRGBGains, applyRawExposureRecovery, applyDemosaicAndMoire } from './rawEngine';
@@ -17,6 +21,10 @@ import { applyDetailAndNoisePipeline } from './detailEngine';
 import { applyAIDepthAdjustments } from './depthEngine';
 import { applyBlurAndDepthPipeline } from './blurEngine';
 import { applySelectiveMasksPipeline } from './selectiveEngine';
+import { applyRetouchStrokesPipeline } from './retouchEngine';
+import { compositeTypographyStack } from './typographyEngine';
+import { compositeDesignStack } from './designEngine';
+import { compositeDrawingStack } from './drawingEngine';
 
 // Cached custom LUT parsing for performance
 let lastCustomCubeText: string | null = null;
@@ -228,9 +236,14 @@ export interface RenderPipelineParams {
   hsl: HSLSettings;
   activePresetId?: string | null;
   presetStrength?: number;
+  customPresets?: FilterPreset[];
   watermark?: WatermarkSettings;
   border?: BorderSettings;
   masks?: SelectiveMask[];
+  retouchStrokes?: RetouchStroke[];
+  typography?: TypographyItem[];
+  designElements?: DesignElementItem[];
+  drawingStrokes?: DrawingStroke[];
   // If true, apply high quality effects like unsharp mask sharpness
   highQuality?: boolean;
 }
@@ -241,21 +254,27 @@ export function processImagePipeline(params: RenderPipelineParams) {
     targetCanvas,
     adjustments: baseAdjustments,
     toneCurves,
-    hsl,
+    hsl: baseHsl,
     activePresetId,
     presetStrength = 100,
+    customPresets = [],
     watermark,
     border,
     masks = [],
+    retouchStrokes = [],
+    typography = [],
+    designElements = [],
+    drawingStrokes = [],
     highQuality = true,
   } = params;
 
   // Merge active preset into adjustments if present
   let adjustments = { ...baseAdjustments };
+  let hsl = { ...baseHsl };
   let activePreset: FilterPreset | undefined;
 
   if (activePresetId) {
-    activePreset = FILTER_PRESETS.find((p) => p.id === activePresetId);
+    activePreset = getPresetById(activePresetId, customPresets);
     if (activePreset) {
       const factor = presetStrength / 100;
       const pSet = activePreset.settings;
@@ -270,8 +289,11 @@ export function processImagePipeline(params: RenderPipelineParams) {
       if (pSet.saturation !== undefined) adjustments.saturation += pSet.saturation * factor;
       if (pSet.vibrance !== undefined) adjustments.vibrance += pSet.vibrance * factor;
       if (pSet.clarity !== undefined) adjustments.clarity += pSet.clarity * factor;
+      if (pSet.texture !== undefined) adjustments.texture = (adjustments.texture || 0) + pSet.texture * factor;
       if (pSet.sharpness !== undefined) adjustments.sharpness += pSet.sharpness * factor;
+      if (pSet.dehaze !== undefined) adjustments.dehaze = (adjustments.dehaze || 0) + pSet.dehaze * factor;
       if (pSet.filmGrain !== undefined) adjustments.filmGrain += pSet.filmGrain * factor;
+      if (pSet.filmGrainSize !== undefined) adjustments.filmGrainSize = pSet.filmGrainSize;
       if (pSet.vignette !== undefined) adjustments.vignette += pSet.vignette * factor;
       if (pSet.splitToning) {
         adjustments.splitToning = {
@@ -281,6 +303,21 @@ export function processImagePipeline(params: RenderPipelineParams) {
           highlightSat: (pSet.splitToning.highlightSat || 0) * factor,
           balance: pSet.splitToning.balance,
         };
+      }
+
+      // Merge preset HSL if present
+      if (activePreset.hsl) {
+        const mergedHsl: any = { ...hsl };
+        for (const [chan, vals] of Object.entries(activePreset.hsl)) {
+          if (vals && mergedHsl[chan]) {
+            mergedHsl[chan] = {
+              hue: mergedHsl[chan].hue + (vals.hue || 0) * factor,
+              saturation: mergedHsl[chan].saturation + (vals.saturation || 0) * factor,
+              luminance: mergedHsl[chan].luminance + (vals.luminance || 0) * factor,
+            };
+          }
+        }
+        hsl = mergedHsl;
       }
     }
   }
@@ -893,12 +930,50 @@ export function processImagePipeline(params: RenderPipelineParams) {
     applySelectiveMasksPipeline(ctx, srcWidth, srcHeight, masks);
   }
 
-  // 15. Watermark
+  // 14b. Retouching Studio Strokes (Healing, Clone Stamp, Skin Smoothing, Wrinkles, Red-Eye, Dust)
+  if (retouchStrokes && retouchStrokes.length > 0) {
+    applyRetouchStrokesPipeline(ctx, srcWidth, srcHeight, retouchStrokes);
+  }
+
+  // 14c. Drawing, Painting & Illustration Studio Stack (Brushes, Pencils, Markers, Pens, Custom Brushes, Shapes)
+  if (drawingStrokes && drawingStrokes.length > 0) {
+    const basePhotoScratch = document.createElement('canvas');
+    basePhotoScratch.width = srcWidth;
+    basePhotoScratch.height = srcHeight;
+    const bCtx = basePhotoScratch.getContext('2d');
+    bCtx?.drawImage(targetCanvas, 0, 0);
+
+    compositeDrawingStack(ctx, drawingStrokes, srcWidth, srcHeight, basePhotoScratch);
+  }
+
+  // 14d. Graphics & Canva-Style Design Elements Stack (Shapes, Lines, Arrows, Stickers, Icons, Illustrations, Frames, Patterns)
+  if (designElements && designElements.length > 0) {
+    const basePhotoScratch = document.createElement('canvas');
+    basePhotoScratch.width = srcWidth;
+    basePhotoScratch.height = srcHeight;
+    const bCtx = basePhotoScratch.getContext('2d');
+    bCtx?.drawImage(targetCanvas, 0, 0);
+
+    compositeDesignStack(ctx, designElements, srcWidth, srcHeight, basePhotoScratch);
+  }
+
+  // 15. Typography Studio Layer Stack
+  if (typography && typography.length > 0) {
+    const basePhotoScratch = document.createElement('canvas');
+    basePhotoScratch.width = srcWidth;
+    basePhotoScratch.height = srcHeight;
+    const bCtx = basePhotoScratch.getContext('2d');
+    bCtx?.drawImage(targetCanvas, 0, 0);
+
+    compositeTypographyStack(ctx, typography, srcWidth, srcHeight, basePhotoScratch);
+  }
+
+  // 16. Watermark
   if (watermark && watermark.enabled && watermark.text.trim()) {
     applyWatermark(ctx, srcWidth, srcHeight, watermark);
   }
 
-  // 16. Border Frame
+  // 17. Border Frame
   if (border && border.enabled && border.type !== 'none') {
     applyBorder(ctx, srcWidth, srcHeight, border);
   }
@@ -1234,4 +1309,107 @@ function applyBorder(
   }
 
   ctx.restore();
+}
+
+/**
+ * Apply core photographic adjustments to an ImageData buffer (used by Adjustment Layers)
+ */
+export function applyCoreAdjustments(imageData: ImageData, adjustments: AdjustmentSettings): ImageData {
+  const result = new ImageData(
+    new Uint8ClampedArray(imageData.data),
+    imageData.width,
+    imageData.height
+  );
+  const data = result.data;
+  const len = data.length;
+
+  const exposureMult = Math.pow(2, (adjustments.exposure || 0) / 50);
+  const brightnessOffset = ((adjustments.brightness || 0) / 100) * 128;
+  const contrastFactor = Math.tan((((adjustments.contrast || 0) + 100) * Math.PI) / 400);
+  const highlightsAdj = (adjustments.highlights || 0) / 100;
+  const shadowsAdj = (adjustments.shadows || 0) / 100;
+  const whitesAdj = (adjustments.whites || 0) / 100;
+  const blacksAdj = (adjustments.blacks || 0) / 100;
+
+  const temp = (adjustments.temperature || 0) / 100;
+  const tintVal = (adjustments.tint || 0) / 100;
+  const rTempMult = temp > 0 ? 1 + temp * 0.4 : 1;
+  const bTempMult = temp < 0 ? 1 + Math.abs(temp) * 0.4 : 1;
+  const gTintMult = tintVal < 0 ? 1 + Math.abs(tintVal) * 0.3 : 1;
+  const rbTintMult = tintVal > 0 ? 1 + tintVal * 0.25 : 1;
+
+  const satMult = 1 + (adjustments.saturation || 0) / 100;
+  const vibranceVal = (adjustments.vibrance || 0) / 100;
+
+  for (let i = 0; i < len; i += 4) {
+    let r = data[i];
+    let g = data[i + 1];
+    let b = data[i + 2];
+
+    // White Balance
+    r = Math.min(255, r * rTempMult * rbTintMult);
+    g = Math.min(255, g * gTintMult);
+    b = Math.min(255, b * bTempMult * rbTintMult);
+
+    // Exposure & Brightness
+    r = r * exposureMult + brightnessOffset;
+    g = g * exposureMult + brightnessOffset;
+    b = b * exposureMult + brightnessOffset;
+
+    // Contrast
+    r = (r - 128) * contrastFactor + 128;
+    g = (g - 128) * contrastFactor + 128;
+    b = (b - 128) * contrastFactor + 128;
+
+    // Luminance for tone zones
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+    if (highlightsAdj !== 0 && lum > 128) {
+      const w = (lum - 128) / 127;
+      r += highlightsAdj * 40 * w;
+      g += highlightsAdj * 40 * w;
+      b += highlightsAdj * 40 * w;
+    }
+
+    if (shadowsAdj !== 0 && lum < 128) {
+      const w = (128 - lum) / 128;
+      r += shadowsAdj * 40 * w;
+      g += shadowsAdj * 40 * w;
+      b += shadowsAdj * 40 * w;
+    }
+
+    if (whitesAdj !== 0 && lum > 200) {
+      const w = (lum - 200) / 55;
+      r += whitesAdj * 35 * w;
+      g += whitesAdj * 35 * w;
+      b += whitesAdj * 35 * w;
+    }
+
+    if (blacksAdj !== 0 && lum < 55) {
+      const w = (55 - lum) / 55;
+      r += blacksAdj * 35 * w;
+      g += blacksAdj * 35 * w;
+      b += blacksAdj * 35 * w;
+    }
+
+    // Saturation & Vibrance
+    if (satMult !== 1 || vibranceVal !== 0) {
+      const currLum = 0.299 * r + 0.587 * g + 0.114 * b;
+      const maxC = Math.max(r, g, b);
+      const minC = Math.min(r, g, b);
+      const currentSat = maxC === minC ? 0 : (maxC - minC) / (maxC || 1);
+      const vibMult = 1 + vibranceVal * (1 - currentSat);
+      const totalSat = satMult * vibMult;
+
+      r = currLum + (r - currLum) * totalSat;
+      g = currLum + (g - currLum) * totalSat;
+      b = currLum + (b - currLum) * totalSat;
+    }
+
+    data[i] = Math.max(0, Math.min(255, Math.round(r)));
+    data[i + 1] = Math.max(0, Math.min(255, Math.round(g)));
+    data[i + 2] = Math.max(0, Math.min(255, Math.round(b)));
+  }
+
+  return result;
 }

@@ -22,7 +22,6 @@ import {
   FlipHorizontal,
   FlipVertical,
   Scissors,
-  Mask,
   Combine,
   Maximize2,
   Check,
@@ -430,7 +429,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
                       : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
                   }`}
                 >
-                  <Mask className="w-3.5 h-3.5" />
+                  <Layers className="w-3.5 h-3.5" />
                   <span>Mask</span>
                 </button>
               </div>
@@ -904,7 +903,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
         <div className="p-3.5 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-3 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="text-xs font-bold text-pink-300 flex items-center gap-1.5">
-              <Mask className="w-4 h-4" />
+              <Layers className="w-4 h-4" />
               <span>Layer Mask Configuration</span>
             </div>
 

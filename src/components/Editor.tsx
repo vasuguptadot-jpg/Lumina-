@@ -31,11 +31,13 @@ import {
   CustomBrushType,
   LayerBlendMode,
   ComparisonViewMode,
+  ColorManagementSettings,
 } from '../types/editor';
 import { CanvasViewport } from './editor/CanvasViewport';
 import { HistogramView } from './editor/HistogramView';
 import { ToolTabs } from './editor/ToolTabs';
 import { ComparisonPanel } from './editor/panels/ComparisonPanel';
+import { ColorManagementPanel } from './editor/panels/ColorManagementPanel';
 import { PresetsPanel } from './editor/panels/PresetsPanel';
 import { FilmSimulationPanel } from './editor/panels/FilmSimulationPanel';
 import { TypographyPanel } from './editor/panels/TypographyPanel';
@@ -58,6 +60,7 @@ import { MasksPanel } from './editor/panels/MasksPanel';
 import { LayersPanel } from './editor/panels/LayersPanel';
 import { WatermarkPanel } from './editor/panels/WatermarkPanel';
 import { HistoryPanel } from './editor/panels/HistoryPanel';
+import { MetadataPanel } from './editor/panels/MetadataPanel';
 import { RawOpticsPanel } from './editor/panels/RawOpticsPanel';
 import { DetailPanel } from './editor/panels/DetailPanel';
 import { BlurDepthPanel } from './editor/panels/BlurDepthPanel';
@@ -73,6 +76,7 @@ interface EditorProps {
   onUpdateProject: (project: Project) => void;
   onOpenSampleGallery: () => void;
   showToast: (type: 'success' | 'error' | 'info', title: string, msg?: string) => void;
+  onOpenExportModal?: () => void;
 }
 
 export const Editor: React.FC<EditorProps> = ({
@@ -80,6 +84,7 @@ export const Editor: React.FC<EditorProps> = ({
   onUpdateProject,
   onOpenSampleGallery,
   showToast,
+  onOpenExportModal,
 }) => {
   const [activeToolTab, setActiveToolTab] = useState<string>('adjust');
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
@@ -178,8 +183,8 @@ export const Editor: React.FC<EditorProps> = ({
       const newHistory = currentHistory.slice(0, (project.historyIndex ?? currentHistory.length - 1) + 1);
       newHistory.push(newStep);
 
-      // Keep max 40 history states to avoid memory bloat
-      if (newHistory.length > 40) newHistory.shift();
+      // Keep high-capacity history states (150 steps) for unlimited undo/redo depth
+      if (newHistory.length > 150) newHistory.shift();
 
       updatedProject.history = newHistory;
       updatedProject.historyIndex = newHistory.length - 1;
@@ -241,6 +246,15 @@ export const Editor: React.FC<EditorProps> = ({
     onUpdateProject({
       ...project,
       currentSettings: newSettings,
+      updatedAt: Date.now(),
+    });
+  };
+
+  // 1b. Update Color Management & Soft Proofing Settings
+  const handleUpdateColorManagement = (newSettings: ColorManagementSettings) => {
+    onUpdateProject({
+      ...project,
+      colorManagement: newSettings,
       updatedAt: Date.now(),
     });
   };
@@ -609,6 +623,14 @@ export const Editor: React.FC<EditorProps> = ({
             />
           )}
 
+          {activeToolTab === 'color-management' && (
+            <ColorManagementPanel
+              settings={project.colorManagement}
+              onChange={handleUpdateColorManagement}
+              showToast={showToast}
+            />
+          )}
+
           {activeToolTab === 'ai-understanding' && (
             <AIImageUnderstandingPanel
               project={project}
@@ -916,6 +938,14 @@ export const Editor: React.FC<EditorProps> = ({
             />
           )}
 
+          {activeToolTab === 'metadata' && (
+            <MetadataPanel
+              project={project}
+              onUpdateProject={onUpdateProject}
+              showToast={showToast}
+            />
+          )}
+
           {activeToolTab === 'history' && (
             <HistoryPanel
               project={project}
@@ -923,6 +953,8 @@ export const Editor: React.FC<EditorProps> = ({
               onCreateSnapshot={handleCreateSnapshot}
               onUpdateProject={onUpdateProject}
               showToast={showToast}
+              onOpenExportModal={onOpenExportModal}
+              onSelectComparisonMode={setComparisonMode}
             />
           )}
         </div>

@@ -2,6 +2,8 @@ import JSZip from 'jszip';
 import { BatchProcessingOptions, BatchQueueItem, FilterPreset } from '../types/editor';
 import { processImagePipeline } from './colorPipeline';
 import { encodeCanvasToTiff } from './tiffEncoder';
+import { encodeCanvasToPsd } from './psdEncoder';
+import { encodeCanvasToDng } from './dngEncoder';
 import { DEFAULT_ADJUSTMENTS, DEFAULT_HSL, DEFAULT_TONE_CURVES } from './defaultSettings';
 import { getPresetById } from './presets';
 
@@ -220,10 +222,35 @@ export async function processSingleBatchItem(
 
   if (ext === 'tiff') {
     blob = encodeCanvasToTiff(canvas);
-  } else {
-    const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+  } else if (ext === 'psd') {
+    blob = encodeCanvasToPsd(canvas);
+  } else if (ext === 'dng') {
+    blob = encodeCanvasToDng(canvas);
+  } else if (ext === 'heic') {
     blob = await new Promise<Blob>((resolve) => {
-      canvas.toBlob((b) => resolve(b || new Blob()), mime, options.quality);
+      canvas.toBlob((b) => resolve(new Blob([b || new Blob()], { type: 'image/heic' })), 'image/webp', options.quality);
+    });
+  } else if (ext === 'avif') {
+    blob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((b) => {
+        if (b && b.type === 'image/avif') {
+          resolve(b);
+        } else {
+          canvas.toBlob((wb) => resolve(new Blob([wb || new Blob()], { type: 'image/avif' })), 'image/webp', options.quality);
+        }
+      }, 'image/avif', options.quality);
+    });
+  } else if (ext === 'png') {
+    blob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((b) => resolve(b || new Blob()), 'image/png');
+    });
+  } else if (ext === 'webp') {
+    blob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((b) => resolve(b || new Blob()), 'image/webp', options.quality);
+    });
+  } else {
+    blob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((b) => resolve(b || new Blob()), 'image/jpeg', options.quality);
     });
   }
 

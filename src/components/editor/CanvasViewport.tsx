@@ -323,6 +323,7 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
       typography: project.typography,
       designElements: project.designElements,
       drawingStrokes: project.drawingStrokes,
+      colorManagement: project.colorManagement,
       highQuality: true,
     });
   }, [
@@ -339,6 +340,7 @@ export const CanvasViewport: React.FC<CanvasViewportProps> = ({
     project.typography,
     project.designElements,
     project.drawingStrokes,
+    project.colorManagement,
   ]);
 
   useEffect(() => {

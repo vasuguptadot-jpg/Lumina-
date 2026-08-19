@@ -15,13 +15,14 @@ import {
   Keyboard,
   Wand2,
   Laptop,
+  Compass,
 } from 'lucide-react';
 import { Project } from '../../types/editor';
 
 interface NavbarProps {
   project: Project | null;
-  activeTab: 'editor' | 'batch' | 'projects' | 'samples';
-  onSelectTab: (tab: 'editor' | 'batch' | 'projects' | 'samples') => void;
+  activeTab: 'library' | 'editor' | 'batch' | 'projects' | 'samples';
+  onSelectTab: (tab: 'library' | 'editor' | 'batch' | 'projects' | 'samples') => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -116,6 +117,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Main Navigation Tabs */}
       <nav className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800/80">
+        <button
+          onClick={() => onSelectTab('library')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'library'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+          title="AI Photo Search & Library Management"
+        >
+          <Compass className="w-3.5 h-3.5 text-amber-300" />
+          <span>AI Library</span>
+        </button>
+
         <button
           onClick={() => onSelectTab('editor')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${

@@ -6,6 +6,7 @@ import { Navbar } from './components/common/Navbar';
 import { Editor } from './components/Editor';
 import { BatchProcessor } from './components/batch/BatchProcessor';
 import { SampleGallery } from './components/gallery/SampleGallery';
+import { PhotoLibrary } from './components/library/PhotoLibrary';
 import { ExportModal } from './components/export/ExportModal';
 import { CloudProjectsModal } from './components/cloud/CloudProjectsModal';
 import { ShortcutModal } from './components/common/ShortcutModal';
@@ -43,7 +44,7 @@ export function App() {
     };
   });
 
-  const [activeTab, setActiveTab] = useState<'editor' | 'batch' | 'projects' | 'samples'>('editor');
+  const [activeTab, setActiveTab] = useState<'library' | 'editor' | 'batch' | 'projects' | 'samples'>('editor');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
@@ -279,12 +280,26 @@ export function App() {
 
       {/* Main Workspace Body */}
       <main className="flex-1 flex overflow-hidden relative">
+        {activeTab === 'library' && (
+          <PhotoLibrary
+            onOpenInEditor={(loadedProject) => {
+              setProject(loadedProject);
+              setActiveTab('editor');
+            }}
+            onOpenInBatchStudio={() => {
+              setActiveTab('batch');
+            }}
+            showToast={showToast}
+          />
+        )}
+
         {activeTab === 'editor' && (
           <Editor
             project={project}
             onUpdateProject={setProject}
             onOpenSampleGallery={() => setActiveTab('samples')}
             showToast={showToast}
+            onOpenExportModal={() => setIsExportModalOpen(true)}
           />
         )}
 

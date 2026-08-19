@@ -11,6 +11,7 @@ import {
   TypographyItem,
   DesignElementItem,
   DrawingStroke,
+  ColorManagementSettings,
 } from '../types/editor';
 import { FILTER_PRESETS, getPresetById } from './presets';
 import { getPresetLUT, parseCubeLUT, sample3DLUT, Parsed3DLUT } from './lutEngine';
@@ -25,6 +26,7 @@ import { applyRetouchStrokesPipeline } from './retouchEngine';
 import { compositeTypographyStack } from './typographyEngine';
 import { compositeDesignStack } from './designEngine';
 import { compositeDrawingStack } from './drawingEngine';
+import { applySoftProofingToCanvas, applyBitDepthPipeline, applyHdrDisplayHeadroom } from './colorManagementEngine';
 
 // Cached custom LUT parsing for performance
 let lastCustomCubeText: string | null = null;
@@ -244,6 +246,7 @@ export interface RenderPipelineParams {
   typography?: TypographyItem[];
   designElements?: DesignElementItem[];
   drawingStrokes?: DrawingStroke[];
+  colorManagement?: ColorManagementSettings;
   // If true, apply high quality effects like unsharp mask sharpness
   highQuality?: boolean;
 }
@@ -265,6 +268,7 @@ export function processImagePipeline(params: RenderPipelineParams) {
     typography = [],
     designElements = [],
     drawingStrokes = [],
+    colorManagement,
     highQuality = true,
   } = params;
 
@@ -977,6 +981,21 @@ export function processImagePipeline(params: RenderPipelineParams) {
   if (border && border.enabled && border.type !== 'none') {
     applyBorder(ctx, srcWidth, srcHeight, border);
   }
+
+  // 18. Bit-Depth High-Precision Dithering & Tone Simulation (8-bit, 16-bit, 32-bit float)
+  if (colorManagement && colorManagement.bitDepth) {
+    applyBitDepthPipeline(targetCanvas, colorManagement.bitDepth);
+  }
+
+  // 19. HDR Display Headroom & Peak Luminance Mapping
+  if (colorManagement && colorManagement.hdrDisplayEnabled) {
+    applyHdrDisplayHeadroom(targetCanvas, colorManagement);
+  }
+
+  // 20. Soft Proofing & Out-of-Gamut Warning Masks (CMYK, Paper, Press & Gamut Warning)
+  if (colorManagement && (colorManagement.softProofEnabled || colorManagement.gamutWarningEnabled)) {
+    applySoftProofingToCanvas(targetCanvas, colorManagement);
+  }
 }
 
 // Unsharp Mask, Local Contrast Clarity, and High-Frequency Texture
@@ -1116,65 +1135,318 @@ function applyFilmGrain(
 }
 
 // Watermark Renderer
+// Vector Logo Drawer helper
+function drawVectorWatermarkLogo(
+  ctx: CanvasRenderingContext2D,
+  preset: string,
+  size: number,
+  color: string
+) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = Math.max(1.5, size * 0.05);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const r = size / 2;
+
+  switch (preset) {
+    case 'camera-shutter': {
+      // Aperture / Camera lens icon
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Shutter blades
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * (r * 0.35), Math.sin(angle) * (r * 0.35));
+        ctx.lineTo(Math.cos(angle + 0.6) * (r * 0.85), Math.sin(angle + 0.6) * (r * 0.85));
+        ctx.stroke();
+      }
+      break;
+    }
+
+    case 'studio-aperture': {
+      // Precision aperture octagon
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const angle = (i * Math.PI) / 4;
+        const x = Math.cos(angle) * r * 0.85;
+        const y = Math.sin(angle) * r * 0.85;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      // Center dot
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+
+    case 'crown-luxury': {
+      // Luxury crown icon
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.8, r * 0.5);
+      ctx.lineTo(r * 0.8, r * 0.5);
+      ctx.lineTo(r * 0.7, -r * 0.4);
+      ctx.lineTo(r * 0.35, r * 0.1);
+      ctx.lineTo(0, -r * 0.6);
+      ctx.lineTo(-r * 0.35, r * 0.1);
+      ctx.lineTo(-r * 0.7, -r * 0.4);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Jewels
+      ctx.beginPath();
+      ctx.arc(0, -r * 0.65, r * 0.08, 0, Math.PI * 2);
+      ctx.arc(-r * 0.7, -r * 0.45, r * 0.08, 0, Math.PI * 2);
+      ctx.arc(r * 0.7, -r * 0.45, r * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+
+    case 'diamond-crest': {
+      // Diamond crest
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.85);
+      ctx.lineTo(r * 0.75, 0);
+      ctx.lineTo(0, r * 0.85);
+      ctx.lineTo(-r * 0.75, 0);
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.85);
+      ctx.lineTo(0, r * 0.85);
+      ctx.moveTo(-r * 0.75, 0);
+      ctx.lineTo(r * 0.75, 0);
+      ctx.stroke();
+      break;
+    }
+
+    case 'copyright-seal': {
+      // Copyright badge seal
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.font = `bold ${Math.round(r * 0.9)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('©', 0, 0);
+      break;
+    }
+
+    case 'signature-script': {
+      // Elegant calligraphy flourish
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.8, 0);
+      ctx.bezierCurveTo(-r * 0.4, -r * 0.7, 0, r * 0.7, r * 0.4, -r * 0.3);
+      ctx.bezierCurveTo(r * 0.6, -r * 0.8, r * 0.8, 0.4, r * 0.8, r * 0.3);
+      ctx.stroke();
+      break;
+    }
+
+    default: {
+      // Minimalist cross / target
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.7, 0, Math.PI * 2);
+      ctx.moveTo(-r * 0.9, 0);
+      ctx.lineTo(r * 0.9, 0);
+      ctx.moveTo(0, -r * 0.9);
+      ctx.lineTo(0, r * 0.9);
+      ctx.stroke();
+      break;
+    }
+  }
+
+  ctx.restore();
+}
+
+// Global Image Cache for custom image watermarks
+const watermarkImageCache = new Map<string, HTMLImageElement>();
+
+// Watermark Renderer supporting Text, Vector Logos, Image Stamps, 9-Point Anchoring, Rotation & Tiling
 function applyWatermark(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   watermark: WatermarkSettings
 ) {
+  if (!watermark.enabled) return;
+
+  const minDim = Math.min(width, height);
+  const opacity = (watermark.opacity ?? 80) / 100;
+  if (opacity <= 0) return;
+
   ctx.save();
-  const fontSize = Math.max(12, Math.round(watermark.fontSize * (Math.min(width, height) / 1000)));
-  ctx.font = `${fontSize}px ${watermark.font || 'sans-serif'}`;
-  ctx.fillStyle = watermark.color || '#ffffff';
-  ctx.globalAlpha = (watermark.opacity || 80) / 100;
+  ctx.globalAlpha = opacity;
+  if (watermark.blendMode && watermark.blendMode !== 'normal') {
+    ctx.globalCompositeOperation = watermark.blendMode as any;
+  }
 
   if (watermark.hasShadow) {
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-    ctx.shadowBlur = 6;
+    ctx.shadowColor = watermark.shadowColor || 'rgba(0, 0, 0, 0.75)';
+    ctx.shadowBlur = watermark.shadowBlur || 6;
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
   }
 
-  const metrics = ctx.measureText(watermark.text);
-  const textWidth = metrics.width;
-  const padding = watermark.padding || 32;
+  const baseScale = (watermark.size ?? 100) / 100;
+  const fontSize = Math.max(12, Math.round((watermark.fontSize || 24) * (minDim / 1000) * baseScale));
+  const logoSize = Math.max(24, Math.round(64 * (minDim / 1000) * baseScale));
+  const color = watermark.color || '#ffffff';
+  const weight = watermark.fontWeight || '600';
+  const font = watermark.font || 'Inter, sans-serif';
+  const text = watermark.text || '© Lumina Studio';
 
-  let x = padding;
-  let y = padding + fontSize;
+  // ----------------------------------------------------
+  // 1. REPEATING / TILED WATERMARK (Proofing / Anti-Theft Grid)
+  // ----------------------------------------------------
+  if (watermark.isTiled || watermark.type === 'pattern-tile') {
+    const spacingX = Math.max(80, Math.round((watermark.tileSpacingX || 180) * (minDim / 1000) * baseScale));
+    const spacingY = Math.max(60, Math.round((watermark.tileSpacingY || 120) * (minDim / 1000) * baseScale));
+    const rotationRad = ((watermark.tileRotation ?? -25) * Math.PI) / 180;
+
+    ctx.font = `${weight} ${fontSize}px ${font}`;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const diag = Math.sqrt(width * width + height * height);
+
+    ctx.save();
+    ctx.translate(width / 2, height / 2);
+    ctx.rotate(rotationRad);
+
+    const startX = -diag;
+    const endX = diag;
+    const startY = -diag;
+    const endY = diag;
+
+    let row = 0;
+    for (let y = startY; y < endY; y += spacingY) {
+      const offsetX = (row % 2 === 0) ? 0 : spacingX / 2;
+      for (let x = startX; x < endX; x += spacingX) {
+        if (watermark.type === 'logo' && watermark.logoPreset) {
+          ctx.save();
+          ctx.translate(x + offsetX, y);
+          drawVectorWatermarkLogo(ctx, watermark.logoPreset, logoSize, color);
+          ctx.restore();
+        } else {
+          ctx.fillText(text, x + offsetX, y);
+        }
+      }
+      row++;
+    }
+    ctx.restore();
+    ctx.restore();
+    return;
+  }
+
+  // ----------------------------------------------------
+  // 2. SINGLE ANCHORED WATERMARK (Text, Logo, Image)
+  // ----------------------------------------------------
+  const padding = Math.max(12, Math.round((watermark.padding ?? 32) * (minDim / 1000)));
+
+  // Determine anchor point
+  let anchorX = padding;
+  let anchorY = padding;
+
+  // Measure bounds
+  ctx.font = `${weight} ${fontSize}px ${font}`;
+  const metrics = ctx.measureText(text);
+  const textW = metrics.width;
+  const textH = fontSize;
+
+  const contentW = watermark.type === 'logo' ? logoSize : watermark.type === 'image' ? (logoSize * 1.5) : textW;
+  const contentH = watermark.type === 'logo' ? logoSize : watermark.type === 'image' ? (logoSize * 1.5) : textH;
 
   switch (watermark.position) {
     case 'top-left':
-      x = padding;
-      y = padding + fontSize;
+      anchorX = padding + contentW / 2;
+      anchorY = padding + contentH / 2;
       break;
     case 'top-center':
-      x = (width - textWidth) / 2;
-      y = padding + fontSize;
+      anchorX = width / 2;
+      anchorY = padding + contentH / 2;
       break;
     case 'top-right':
-      x = width - textWidth - padding;
-      y = padding + fontSize;
+      anchorX = width - padding - contentW / 2;
+      anchorY = padding + contentH / 2;
+      break;
+    case 'center-left':
+      anchorX = padding + contentW / 2;
+      anchorY = height / 2;
       break;
     case 'center':
-      x = (width - textWidth) / 2;
-      y = height / 2 + fontSize / 3;
+      anchorX = width / 2;
+      anchorY = height / 2;
+      break;
+    case 'center-right':
+      anchorX = width - padding - contentW / 2;
+      anchorY = height / 2;
       break;
     case 'bottom-left':
-      x = padding;
-      y = height - padding;
+      anchorX = padding + contentW / 2;
+      anchorY = height - padding - contentH / 2;
       break;
     case 'bottom-center':
-      x = (width - textWidth) / 2;
-      y = height - padding;
+      anchorX = width / 2;
+      anchorY = height - padding - contentH / 2;
+      break;
+    case 'custom':
+      anchorX = ((watermark.customX ?? 50) / 100) * width;
+      anchorY = ((watermark.customY ?? 50) / 100) * height;
       break;
     case 'bottom-right':
     default:
-      x = width - textWidth - padding;
-      y = height - padding;
+      anchorX = width - padding - contentW / 2;
+      anchorY = height - padding - contentH / 2;
       break;
   }
 
-  ctx.fillText(watermark.text, x, y);
+  // Apply positioning & custom rotation
+  ctx.translate(anchorX, anchorY);
+  if (watermark.rotation && watermark.rotation !== 0) {
+    ctx.rotate((watermark.rotation * Math.PI) / 180);
+  }
+
+  // Draw Specific Content Type
+  if (watermark.type === 'logo' && watermark.logoPreset) {
+    drawVectorWatermarkLogo(ctx, watermark.logoPreset, logoSize, color);
+  } else if (watermark.type === 'image' && watermark.imageUrl) {
+    let img = watermarkImageCache.get(watermark.imageUrl);
+    if (!img) {
+      img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = watermark.imageUrl;
+      watermarkImageCache.set(watermark.imageUrl, img);
+    }
+    if (img.complete && img.naturalWidth > 0) {
+      const imgW = logoSize * 1.5;
+      const imgH = img.naturalHeight ? (imgW * img.naturalHeight) / img.naturalWidth : imgW;
+      ctx.drawImage(img, -imgW / 2, -imgH / 2, imgW, imgH);
+    }
+  } else {
+    // Text Watermark
+    ctx.font = `${weight} ${fontSize}px ${font}`;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 0, 0);
+  }
+
   ctx.restore();
 }
 

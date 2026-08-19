@@ -757,7 +757,7 @@ export const BatchProcessor: React.FC<BatchProcessorProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                   <Stamp className="w-4 h-4 text-rose-400" />
-                  Batch Watermark
+                  Batch Watermark Protection
                 </span>
                 <input
                   type="checkbox"
@@ -769,46 +769,144 @@ export const BatchProcessor: React.FC<BatchProcessorProps> = ({
 
               {options.applyWatermark && (
                 <div className="space-y-3 pt-2 border-t border-slate-800">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-slate-400">Watermark Text</label>
-                    <input
-                      type="text"
-                      value={options.watermarkSettings?.text || ''}
-                      onChange={(e) =>
+                  {/* Current Project Sync Button */}
+                  {currentProject?.watermark && (
+                    <button
+                      onClick={() => {
                         setOptions({
                           ...options,
-                          watermarkSettings: {
-                            ...(options.watermarkSettings || DEFAULT_WATERMARK),
-                            text: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                    />
+                          applyWatermark: true,
+                          watermarkSettings: { ...currentProject.watermark, enabled: true },
+                        });
+                        showToast('success', 'Synced Project Watermark', 'Batch queue will apply current project watermark styling');
+                      }}
+                      className="w-full py-1.5 px-3 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 hover:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Sync Watermark from Active Project</span>
+                    </button>
+                  )}
+
+                  {/* Watermark Type Selector */}
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { id: 'text', label: 'Text' },
+                      { id: 'logo', label: 'Logo' },
+                      { id: 'image', label: 'Stamp' },
+                      { id: 'pattern-tile', label: 'Tiling' },
+                    ].map((m) => {
+                      const curType = options.watermarkSettings?.isTiled
+                        ? 'pattern-tile'
+                        : options.watermarkSettings?.type || 'text';
+                      const isSel = curType === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => {
+                            const cur = options.watermarkSettings || DEFAULT_WATERMARK;
+                            if (m.id === 'pattern-tile') {
+                              setOptions({
+                                ...options,
+                                watermarkSettings: { ...cur, type: 'pattern-tile', isTiled: true },
+                              });
+                            } else {
+                              setOptions({
+                                ...options,
+                                watermarkSettings: { ...cur, type: m.id as any, isTiled: false },
+                              });
+                            }
+                          }}
+                          className={`py-1.5 text-[11px] font-bold rounded-lg border transition-all ${
+                            isSel
+                              ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm'
+                              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {m.label}
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Text Watermark Input */}
+                  {(options.watermarkSettings?.type === 'text' || options.watermarkSettings?.isTiled || !options.watermarkSettings?.type) && (
                     <div className="space-y-1">
-                      <label className="text-[10px] text-slate-400">Font Size ({options.watermarkSettings?.fontSize}pt)</label>
+                      <label className="text-[10px] text-slate-400">Watermark Text</label>
                       <input
-                        type="range"
-                        min={12}
-                        max={72}
-                        value={options.watermarkSettings?.fontSize || 24}
+                        type="text"
+                        value={options.watermarkSettings?.text || '© Lumina Studio Pro'}
                         onChange={(e) =>
                           setOptions({
                             ...options,
                             watermarkSettings: {
                               ...(options.watermarkSettings || DEFAULT_WATERMARK),
-                              fontSize: Number(e.target.value),
+                              text: e.target.value,
+                            },
+                          })
+                        }
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none font-mono"
+                      />
+                    </div>
+                  )}
+
+                  {/* 9-Point Positioning Matrix */}
+                  {!options.watermarkSettings?.isTiled && options.watermarkSettings?.type !== 'pattern-tile' && (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400">Position Matrix</label>
+                      <div className="grid grid-cols-3 gap-1 max-w-[200px] mx-auto">
+                        {[
+                          'top-left', 'top-center', 'top-right',
+                          'center-left', 'center', 'center-right',
+                          'bottom-left', 'bottom-center', 'bottom-right'
+                        ].map((pos) => (
+                          <button
+                            key={pos}
+                            onClick={() =>
+                              setOptions({
+                                ...options,
+                                watermarkSettings: {
+                                  ...(options.watermarkSettings || DEFAULT_WATERMARK),
+                                  position: pos as any,
+                                },
+                              })
+                            }
+                            className={`py-1 text-[9px] font-bold rounded border transition-all uppercase ${
+                              (options.watermarkSettings?.position || 'bottom-right') === pos
+                                ? 'bg-indigo-600 border-indigo-500 text-white'
+                                : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300'
+                            }`}
+                          >
+                            {pos.split('-').map(s => s[0]).join('')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Size and Opacity Sliders */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-400">Scale ({options.watermarkSettings?.size || 100}%)</label>
+                      <input
+                        type="range"
+                        min={30}
+                        max={200}
+                        value={options.watermarkSettings?.size || 100}
+                        onChange={(e) =>
+                          setOptions({
+                            ...options,
+                            watermarkSettings: {
+                              ...(options.watermarkSettings || DEFAULT_WATERMARK),
+                              size: Number(e.target.value),
                             },
                           })
                         }
                         className="w-full accent-indigo-500 cursor-pointer"
                       />
                     </div>
+
                     <div className="space-y-1">
-                      <label className="text-[10px] text-slate-400">Opacity ({options.watermarkSettings?.opacity}%)</label>
+                      <label className="text-[10px] text-slate-400">Opacity ({options.watermarkSettings?.opacity || 80}%)</label>
                       <input
                         type="range"
                         min={10}
@@ -841,7 +939,7 @@ export const BatchProcessor: React.FC<BatchProcessorProps> = ({
               </div>
 
               <div className="grid grid-cols-4 gap-1.5">
-                {(['jpeg', 'png', 'webp', 'tiff'] as const).map((fmt) => (
+                {(['jpeg', 'png', 'webp', 'avif', 'tiff', 'heic', 'dng', 'psd'] as const).map((fmt) => (
                   <button
                     key={fmt}
                     onClick={() => setOptions({ ...options, outputFormat: fmt })}

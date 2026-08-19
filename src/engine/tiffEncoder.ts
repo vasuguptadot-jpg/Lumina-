@@ -3,9 +3,15 @@
  * Encodes canvas pixel data into standard 24-bit RGB TIFF files.
  */
 
-export function encodeCanvasToTiff(canvas: HTMLCanvasElement): Blob {
+export interface TiffExportOptions {
+  dpi?: number;
+  software?: string;
+}
+
+export function encodeCanvasToTiff(canvas: HTMLCanvasElement, options: TiffExportOptions = {}): Blob {
   const width = canvas.width;
   const height = canvas.height;
+  const dpi = options.dpi || 300;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas context unavailable');
 
@@ -19,12 +25,7 @@ export function encodeCanvasToTiff(canvas: HTMLCanvasElement): Blob {
   const headerSize = 8;
   const tagDataOffset = headerSize + ifdSize;
 
-  // We need extra space for tag values that don't fit in 4 bytes:
-  // - BitsPerSample: 3 x 2 bytes = 6 bytes (offset 0)
-  // - XResolution: 2 x 4 bytes = 8 bytes (offset 6)
-  // - YResolution: 2 x 4 bytes = 8 bytes (offset 14)
-  // - Software string: ~24 bytes (offset 22)
-  const softwareStr = "Lumina Studio Pro 2026\0";
+  const softwareStr = (options.software || "Lumina Studio Pro 2026") + "\0";
   const extraDataSize = 6 + 8 + 8 + softwareStr.length;
   const imageDataOffset = tagDataOffset + extraDataSize;
   const totalFileSize = imageDataOffset + imageSize;
@@ -75,9 +76,9 @@ export function encodeCanvasToTiff(canvas: HTMLCanvasElement): Blob {
   writeTag(278, 4, 1, height);
   // Tag 279: StripByteCounts
   writeTag(279, 4, 1, imageSize);
-  // Tag 282: XResolution (300/1 DPI)
+  // Tag 282: XResolution (DPI/1)
   writeTag(282, 5, 1, xResOffset);
-  // Tag 283: YResolution (300/1 DPI)
+  // Tag 283: YResolution (DPI/1)
   writeTag(283, 5, 1, yResOffset);
   // Tag 305: Software
   writeTag(305, 2, softwareStr.length, softwareOffset);
@@ -91,12 +92,12 @@ export function encodeCanvasToTiff(canvas: HTMLCanvasElement): Blob {
   view.setUint16(bitsPerSampleOffset + 2, 8, true);
   view.setUint16(bitsPerSampleOffset + 4, 8, true);
 
-  // XResolution: 300 / 1
-  view.setUint32(xResOffset, 300, true);
+  // XResolution: dpi / 1
+  view.setUint32(xResOffset, dpi, true);
   view.setUint32(xResOffset + 4, 1, true);
 
-  // YResolution: 300 / 1
-  view.setUint32(yResOffset, 300, true);
+  // YResolution: dpi / 1
+  view.setUint32(yResOffset, dpi, true);
   view.setUint32(yResOffset + 4, 1, true);
 
   // Software ASCII String

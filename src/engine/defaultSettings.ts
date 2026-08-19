@@ -1,4 +1,26 @@
-import { AdjustmentSettings, CropSettings, HSLSettings, ToneCurves, WatermarkSettings, BorderSettings, Project, CollageSettings } from '../types/editor';
+import { AdjustmentSettings, CropSettings, HSLSettings, ToneCurves, WatermarkSettings, BorderSettings, Project, CollageSettings, ColorManagementSettings } from '../types/editor';
+
+export const DEFAULT_COLOR_MANAGEMENT: ColorManagementSettings = {
+  workingSpace: 'display-p3',
+  bitDepth: '16-bit',
+  softProofEnabled: false,
+  proofProfile: 'cmyk-gracol-2006',
+  renderingIntent: 'relative-colorimetric',
+  simulatePaperWhite: false,
+  simulateBlackInk: false,
+  paperWhiteTint: '#FAF7ED',
+  blackInkDmax: 20,
+  gamutWarningEnabled: false,
+  gamutWarningColor: 'neon-red',
+  gamutThreshold: 85,
+  hdrDisplayEnabled: false,
+  hdrPeakLuminanceNits: 1000,
+  hdrHighlightRecovery: 40,
+  hdrSdrGainMap: 50,
+  edrBoost: false,
+  whitePointIlluminant: 'D65',
+  gammaCurve: 'sRGB-2.2',
+};
 
 export const DEFAULT_ADJUSTMENTS: AdjustmentSettings = {
   exposure: 0,
@@ -263,14 +285,30 @@ export const DEFAULT_CROP: CropSettings = {
 
 export const DEFAULT_WATERMARK: WatermarkSettings = {
   enabled: false,
+  type: 'text',
   text: '© Lumina Studio Pro',
   font: 'Inter, sans-serif',
   fontSize: 24,
+  fontWeight: '600',
   color: '#ffffff',
   opacity: 85,
   position: 'bottom-right',
+  customX: 50,
+  customY: 50,
+  rotation: 0,
+  size: 100,
   hasShadow: true,
+  shadowColor: 'rgba(0, 0, 0, 0.7)',
+  shadowBlur: 6,
   padding: 32,
+  logoPreset: 'camera-shutter',
+  maintainAspectRatio: true,
+  blendMode: 'normal',
+  isTiled: false,
+  tileSpacingX: 180,
+  tileSpacingY: 120,
+  tileRotation: -25,
+  tileDensity: 'normal',
 };
 
 export const DEFAULT_BORDER: BorderSettings = {
@@ -349,6 +387,7 @@ export const DEFAULT_PROJECT_STATE: Project = {
   retouchStrokes: [],
   collage: DEFAULT_COLLAGE,
   drawingStrokes: [],
+  colorManagement: DEFAULT_COLOR_MANAGEMENT,
   history: [],
   historyIndex: 0,
   snapshots: [],

@@ -2343,5 +2343,83 @@ Return ONLY valid JSON matching this schema:
     }
   }
 
+  if (endpoint === 'auto-tag-photo') {
+    const { imageBase64, fileName } = body;
+    if (!imageBase64) throw new Error("Image data is required for auto-tagging");
+
+    const cleanImg = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+
+    const systemPrompt = `You are a world-class AI computer vision specialist, photography curator, and metadata archivist for a professional photo management system.
+Analyze the provided photograph with extreme precision to generate comprehensive tags, scene descriptions, semantic classification, object detection, and quality scores for natural language search queries like:
+- "Photos of me at the beach."
+- "Find photos with cars."
+- "Find my best portraits."
+- "Find photos taken at night."
+
+Instructions:
+1. sceneDescription: 1-2 rich descriptive sentences describing what is in the photo (subjects, background, action, lighting, setting).
+2. tags: Return 15 to 25 precise, diverse, lowercase keywords. Include:
+   - Primary subjects (e.g. "person", "woman", "man", "car", "sports car", "convertible", "beach", "ocean", "building", "dog")
+   - Environment & location (e.g. "beach", "coast", "shoreline", "sand", "highway", "city", "studio", "mountains", "desert", "room")
+   - Time of day & lighting (e.g. "night", "dark", "neon", "sunset", "golden hour", "daylight", "bright", "shadows", "astro", "stars")
+   - Mood & aesthetic (e.g. "cinematic", "vibrant", "peaceful", "moody", "glamorous", "candid", "dramatic")
+   - Key attributes (e.g. "water", "waves", "wheels", "leather", "sky", "reflections", "bokeh", "black and white")
+3. categories: Array from: ["Beach & Coastal", "Automotive & Cars", "Portrait", "Night Photography", "Landscape", "Architecture", "Street & Urban", "Nature & Wildlife", "Travel", "Fashion & Lifestyle", "Abstract"].
+4. detectedObjects: Array of { label: string, confidence: number (0.5 to 1.0) } for prominent elements (e.g. "person", "car", "beach", "sunglasses", "palm tree", "building", "camera", "clock", "traffic light").
+5. timeOfDay: Exactly one of: "day" | "night" | "golden-hour" | "sunset" | "sunrise" | "blue-hour" | "indoor".
+6. isPortrait: true if the photo features one or more people as the main focal subject; false otherwise.
+7. portraitQualityScore: Integer 0 to 100 evaluating facial lighting, sharpness, eye contact, and portrait framing. (If not portrait, score 0).
+8. aestheticScore: Integer 0 to 100 evaluating photographic mastery (lighting, composition, dynamic range, subject interest).
+9. facesDetected: Integer count of visible human faces.
+10. primarySubject: Concise title of the main subject (e.g. "Woman in Golden Hour Light", "Vintage Red Roadster", "Tropical Ocean Coastline", "Cyberpunk Rainy Street").
+11. dominantColors: Array of 3 to 5 prominent hex color codes (e.g. ["#1e3a8a", "#f59e0b", "#f3f4f6"]).
+12. mood: Concise mood word (e.g. "Serene", "Dynamic", "Mysterious", "Nostalgic", "Vibrant").
+13. lightingType: e.g. "Direct Sunlight", "Golden Hour Sun", "Neon Night Glow", "Studio Softbox", "Diffused Overcast".
+14. locationName: Estimated or evocative setting name (e.g. "Coastal Beach", "Downtown City", "Alpine Pass", "Photo Studio").
+
+Return ONLY valid JSON matching this schema:
+{
+  "sceneDescription": string,
+  "tags": string[],
+  "categories": string[],
+  "detectedObjects": [{ "label": string, "confidence": number }],
+  "timeOfDay": "day" | "night" | "golden-hour" | "sunset" | "sunrise" | "blue-hour" | "indoor",
+  "isPortrait": boolean,
+  "portraitQualityScore": number,
+  "aestheticScore": number,
+  "facesDetected": number,
+  "primarySubject": string,
+  "dominantColors": string[],
+  "mood": string,
+  "lightingType": string,
+  "locationName": string
+}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.7-flash',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: cleanImg,
+            },
+          },
+          { text: systemPrompt },
+        ],
+      },
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    try {
+      const parsed = JSON.parse(response.text || '{}');
+      return { success: true, data: parsed };
+    } catch (e: any) {
+      return { success: false, error: "Failed to parse AI photo tagging response." };
+    }
+  }
+
   throw new Error(`Unknown endpoint: ${endpoint}`);
 }

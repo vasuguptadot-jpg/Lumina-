@@ -26,6 +26,8 @@ import {
   Brain,
   Compass,
   Columns,
+  Info,
+  Printer,
 } from 'lucide-react';
 
 interface ToolTabsProps {
@@ -36,6 +38,8 @@ interface ToolTabsProps {
 export const ToolTabs: React.FC<ToolTabsProps> = ({ activeTab, onSelectTab }) => {
   const tabs = [
     { id: 'comparison', label: 'Before / After', icon: Columns, badge: 'COMPARE' },
+    { id: 'color-management', label: 'Color & Proofing', icon: Printer, badge: 'ICC' },
+    { id: 'metadata', label: 'Metadata & EXIF', icon: Info, badge: 'EXIF' },
     { id: 'ai-understanding', label: 'AI Vision & Fix', icon: Brain, badge: 'VISION' },
     { id: 'composition', label: 'Composition AI', icon: Compass, badge: 'GUIDE' },
     { id: 'raw-optics', label: 'RAW & Optics', icon: Camera, badge: 'RAW' },

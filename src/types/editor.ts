@@ -12,13 +12,31 @@ export interface ImageFile {
 
 export type BayerPattern = 'RGGB' | 'BGGR' | 'GRBG' | 'GBRG' | 'X-Trans';
 
+export interface GPSCoordinates {
+  latitude: number;
+  longitude: number;
+  altitude?: number;
+  city?: string;
+  country?: string;
+  locationName?: string;
+}
+
+export interface MetadataPrivacySettings {
+  stripGpsOnExport: boolean;
+  stripAllMetadataOnExport: boolean;
+  copyrightOnlyOnExport: boolean;
+}
+
 export interface RawMetadata {
   isRaw: boolean;
   cameraMake?: string;
   cameraModel?: string;
+  cameraSerialNumber?: string;
   lens?: string;
+  lensSerialNumber?: string;
   iso?: number;
   focalLength?: string;
+  focalLength35mm?: string;
   aperture?: string;
   shutterSpeed?: string;
   colorSpace?: string;
@@ -29,8 +47,21 @@ export interface RawMetadata {
   bayerPattern?: BayerPattern | string;
   sensorDimensions?: string;
   dateShot?: string;
+  timeShot?: string;
   exposureBias?: string;
+  meteringMode?: string;
   flashFired?: boolean;
+  author?: string;
+  copyright?: string;
+  copyrightNotice?: string;
+  rightsUsageTerms?: string;
+  title?: string;
+  caption?: string;
+  keywords?: string[];
+  rating?: number; // 0 to 5
+  software?: string;
+  gps?: GPSCoordinates | null;
+  privacy?: MetadataPrivacySettings;
 }
 
 export type CameraProfileId =
@@ -88,6 +119,70 @@ export interface OpticsSettings {
   lensVignetteAmount: number; // -100 to 100
   lensVignetteMidpoint: number; // 10 to 90
   lensVignetteFeather: number; // 10 to 90
+}
+
+// ----------------------------------------------------------------------------
+// Color Management, ICC Profiles, Soft Proofing & Bit Depth Types
+// ----------------------------------------------------------------------------
+export type WorkingColorSpace =
+  | 'srgb'
+  | 'display-p3'
+  | 'adobe-rgb'
+  | 'prophoto-rgb'
+  | 'rec2020'
+  | 'acescg';
+
+export type SoftProofProfileId =
+  | 'srgb'
+  | 'display-p3'
+  | 'adobe-rgb'
+  | 'cmyk-swop-v2'
+  | 'cmyk-gracol-2006'
+  | 'cmyk-fogra39'
+  | 'cmyk-pso-uncoated'
+  | 'cmyk-japan-color'
+  | 'paper-matte-rag'
+  | 'paper-luster-baryta'
+  | 'paper-newsprint';
+
+export type RenderingIntent =
+  | 'relative-colorimetric'
+  | 'perceptual'
+  | 'absolute-colorimetric'
+  | 'saturation';
+
+export type ProcessingBitDepth = '8-bit' | '16-bit' | '32-bit-float';
+
+export type GamutWarningColor = 'neon-red' | 'neon-cyan' | 'neon-magenta' | 'neon-green' | 'zebra';
+
+export interface ColorManagementSettings {
+  workingSpace: WorkingColorSpace;
+  bitDepth: ProcessingBitDepth;
+
+  // Soft Proofing Engine
+  softProofEnabled: boolean;
+  proofProfile: SoftProofProfileId;
+  renderingIntent: RenderingIntent;
+  simulatePaperWhite: boolean;
+  simulateBlackInk: boolean;
+  paperWhiteTint?: string; // Hex color for simulated substrate e.g. '#FAF7ED'
+  blackInkDmax?: number; // 0 to 100 contrast reduction
+
+  // Out-of-Gamut Warning Overlay
+  gamutWarningEnabled: boolean;
+  gamutWarningColor: GamutWarningColor;
+  gamutThreshold: number; // 1 to 100 sensitivity
+
+  // HDR Display & Headroom
+  hdrDisplayEnabled: boolean;
+  hdrPeakLuminanceNits: number; // 100 to 1600 nits
+  hdrHighlightRecovery: number; // 0 to 100
+  hdrSdrGainMap: number; // 0 to 100
+  edrBoost: boolean;
+
+  // Calibration & White Point
+  whitePointIlluminant: 'D65' | 'D50' | 'D55' | 'D75';
+  gammaCurve: 'sRGB-2.2' | 'Linear-1.0' | 'Gamma-2.4' | 'Gamma-1.8' | 'BT.1886';
 }
 
 export interface AdjustmentSettings {
@@ -445,16 +540,63 @@ export interface AiPresetGenerationResult {
   colorPalette: string[];
 }
 
+export type WatermarkType = 'text' | 'image' | 'logo' | 'pattern-tile';
+
+export type WatermarkPosition =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'center-left'
+  | 'center'
+  | 'center-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right'
+  | 'custom';
+
+export type WatermarkLogoPreset =
+  | 'camera-shutter'
+  | 'studio-aperture'
+  | 'crown-luxury'
+  | 'diamond-crest'
+  | 'copyright-seal'
+  | 'signature-script'
+  | 'minimal-cross'
+  | 'lens-flare-badge';
+
 export interface WatermarkSettings {
   enabled: boolean;
+  type: WatermarkType;
   text: string;
   font: string;
-  fontSize: number; // pt
+  fontSize: number; // pt (12 to 120)
+  fontWeight?: 'normal' | 'bold' | '300' | '600' | '900';
   color: string;
   opacity: number; // 0 to 100
-  position: 'top-left' | 'top-center' | 'top-right' | 'center' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  position: WatermarkPosition;
+  customX?: number; // 0 to 100%
+  customY?: number; // 0 to 100%
+  rotation?: number; // -180 to 180 deg
+  size?: number; // 10 to 300%
   hasShadow: boolean;
-  padding: number;
+  shadowColor?: string;
+  shadowBlur?: number;
+  padding: number; // margin px/ratio
+
+  // Image & Logo Specific
+  logoPreset?: WatermarkLogoPreset;
+  imageUrl?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  maintainAspectRatio?: boolean;
+  blendMode?: LayerBlendMode;
+
+  // Tiling / Repeating Pattern
+  isTiled?: boolean;
+  tileSpacingX?: number; // px
+  tileSpacingY?: number; // px
+  tileRotation?: number; // -45 to 45 deg
+  tileDensity?: 'loose' | 'normal' | 'dense';
 }
 
 export interface BorderSettings {
@@ -1302,6 +1444,7 @@ export interface EditHistorySnapshot {
   retouchStrokes?: RetouchStroke[];
   collage?: CollageSettings;
   drawingStrokes?: DrawingStroke[];
+  colorManagement?: ColorManagementSettings;
 }
 
 export interface Project {
@@ -1325,6 +1468,7 @@ export interface Project {
   retouchStrokes?: RetouchStroke[];
   collage?: CollageSettings;
   drawingStrokes?: DrawingStroke[];
+  colorManagement?: ColorManagementSettings;
   history: EditHistorySnapshot[];
   historyIndex: number;
   snapshots: Array<{ id: string; name: string; timestamp: number; data: EditHistorySnapshot }>;
@@ -1401,7 +1545,7 @@ export interface BatchProcessingOptions {
   maxWidth?: number;
   maxHeight?: number;
   socialTarget?: BatchSocialTarget;
-  outputFormat: 'png' | 'jpeg' | 'webp' | 'tiff';
+  outputFormat: 'png' | 'jpeg' | 'webp' | 'avif' | 'tiff' | 'heic' | 'dng' | 'psd';
   quality: number; // 0.1 to 1.0
   applyWatermark: boolean;
   watermarkSettings?: WatermarkSettings;

@@ -35,6 +35,7 @@ import {
   Pause,
   ArrowRight,
   Filter,
+  Zap,
 } from 'lucide-react';
 import {
   BatchProcessingOptions,
@@ -54,6 +55,9 @@ import { processSingleBatchItem, createBatchZipArchive, computeBatchFilename } f
 import { parseImageOrRawFile } from '../../engine/rawParser';
 import { triggerDownload } from '../../engine/exportEngine';
 import { DEFAULT_ADJUSTMENTS, DEFAULT_HSL, DEFAULT_TONE_CURVES, DEFAULT_WATERMARK } from '../../engine/defaultSettings';
+import { BUILTIN_AUTOMATIONS } from '../../engine/automationEngine';
+import { getAllAutomationsFromDB } from '../../storage/db';
+import { AutomationWorkflow } from '../../types/automation';
 
 interface BatchProcessorProps {
   currentProject?: Project;
@@ -86,6 +90,66 @@ export const BatchProcessor: React.FC<BatchProcessorProps> = ({
 
   // Selected preset category filter in batch
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [savedAutomations, setSavedAutomations] = useState<AutomationWorkflow[]>(BUILTIN_AUTOMATIONS);
+
+  React.useEffect(() => {
+    getAllAutomationsFromDB().then((custom) => {
+      setSavedAutomations([...BUILTIN_AUTOMATIONS, ...custom]);
+    }).catch(console.error);
+  }, []);
+
+  const handleApplyAutomationRecipe = (workflow: AutomationWorkflow) => {
+    setOptions((prev) => {
+      const copy = { ...prev };
+      // 1. Color and Auto Tone
+      if (workflow.steps.colorCorrectionStep.enabled) {
+        copy.autoEnhance = workflow.steps.colorCorrectionStep.autoTone;
+        copy.customAdjustments = {
+          ...DEFAULT_ADJUSTMENTS,
+          exposure: workflow.steps.colorCorrectionStep.exposure || 0,
+          contrast: workflow.steps.colorCorrectionStep.contrast || 0,
+          highlights: workflow.steps.colorCorrectionStep.highlights || 0,
+          shadows: workflow.steps.colorCorrectionStep.shadows || 0,
+          temperature: workflow.steps.colorCorrectionStep.temperature || 0,
+          vibrance: workflow.steps.colorCorrectionStep.vibrance || 0,
+          clarity: workflow.steps.colorCorrectionStep.clarity || 0,
+          dehaze: workflow.steps.colorCorrectionStep.dehaze || 0,
+        };
+      }
+      // 2. Preset
+      if (workflow.steps.presetStep.enabled && workflow.steps.presetStep.presetId) {
+        copy.applyPresetId = workflow.steps.presetStep.presetId;
+        copy.presetStrength = workflow.steps.presetStep.presetStrength || 100;
+      }
+      // 3. Watermark
+      if (workflow.steps.watermarkStep.enabled) {
+        copy.applyWatermark = true;
+        copy.watermarkSettings = {
+          ...DEFAULT_WATERMARK,
+          text: workflow.steps.watermarkStep.text,
+          opacity: workflow.steps.watermarkStep.opacity / 100,
+          position: workflow.steps.watermarkStep.position,
+        };
+      }
+      // 4. Resize
+      if (workflow.steps.resizeStep.enabled) {
+        copy.resizeOption = workflow.steps.resizeStep.mode;
+        if (workflow.steps.resizeStep.longEdgePx) copy.longEdgePx = workflow.steps.resizeStep.longEdgePx;
+        if (workflow.steps.resizeStep.socialTarget) copy.socialTarget = workflow.steps.resizeStep.socialTarget;
+      }
+      // 5. Export
+      if (workflow.steps.exportStep.enabled) {
+        copy.outputFormat = workflow.steps.exportStep.format as any;
+        copy.quality = workflow.steps.exportStep.quality || 0.92;
+        if (workflow.steps.exportStep.namingPattern) {
+          copy.renamePrefix = workflow.steps.exportStep.namingPattern.replace(/\{.*\}/g, '').trim() || 'batch_';
+        }
+      }
+      return copy;
+    });
+
+    showToast('success', 'Automation Recipe Applied', `Loaded "${workflow.name}" into batch queue.`);
+  };
 
   // Clipboard adjustments from current project or copied item
   const [copiedSettings, setCopiedSettings] = useState<{
@@ -460,6 +524,39 @@ export const BatchProcessor: React.FC<BatchProcessorProps> = ({
           {/* TAB 1: RECIPE & PRESETS */}
           {activeTab === 'recipe' && (
             <div className="space-y-4">
+              {/* Automation Workflow Recipe Quick-Applier */}
+              <div className="bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 border border-amber-500/30 rounded-2xl p-3.5 space-y-2.5 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    Load Automation Workflow
+                  </span>
+                  <span className="text-[10px] text-amber-400/80 uppercase font-black tracking-wider">
+                    8-Stage Pipeline
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Apply full 8-step recipes (Auto-tone, NR, preset grade, watermark, and sizing) across all queue items in one click.
+                </p>
+
+                <select
+                  onChange={(e) => {
+                    const selected = savedAutomations.find((w) => w.id === e.target.value);
+                    if (selected) handleApplyAutomationRecipe(selected);
+                  }}
+                  defaultValue=""
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none font-medium cursor-pointer"
+                >
+                  <option value="" disabled>Select an Automation Workflow to Apply...</option>
+                  {savedAutomations.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      ⚡ {w.name} ({w.category})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Copy / Sync Adjustments Card */}
               <div className="bg-slate-950/80 border border-indigo-500/30 rounded-2xl p-3.5 space-y-3 shadow-lg">
                 <div className="flex items-center justify-between">

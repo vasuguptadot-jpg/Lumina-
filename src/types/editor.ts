@@ -29,6 +29,9 @@ export interface MetadataPrivacySettings {
 
 export interface RawMetadata {
   isRaw: boolean;
+  decodeStatus?: 'genuine_raw_sensor' | 'preview_fallback' | 'unsupported';
+  decoderEngine?: string;
+  statusReason?: string;
   cameraMake?: string;
   cameraModel?: string;
   cameraSerialNumber?: string;
@@ -46,6 +49,10 @@ export interface RawMetadata {
   wbTint?: number;
   bayerPattern?: BayerPattern | string;
   sensorDimensions?: string;
+  blackLevel?: [number, number, number, number] | number[];
+  whiteLevel?: number;
+  colorMatrix1?: number[][];
+  asShotNeutral?: [number, number, number];
   dateShot?: string;
   timeShot?: string;
   exposureBias?: string;
@@ -1474,7 +1481,14 @@ export interface Project {
   snapshots: Array<{ id: string; name: string; timestamp: number; data: EditHistorySnapshot }>;
   cloudSyncStatus: 'synced' | 'syncing' | 'offline' | 'local-only';
   cloudRevision: number;
+  revision?: number;
   thumbnailUrl?: string;
+  // Legacy V1 flat schema compatibility fields
+  exposure?: number;
+  temperature?: number;
+  contrast?: number;
+  highlights?: number;
+  shadows?: number;
 }
 
 export type BatchResizeMode =

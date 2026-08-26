@@ -10,9 +10,8 @@ interface HistogramViewProps {
 export const HistogramView: React.FC<HistogramViewProps> = ({ metadata }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [histData, setHistData] = useState<HistogramData | null>(null);
-  const [channelMode, setChannelMode] = useState<'rgb' | 'lum' | 'r' | 'g' | 'b'>('rgb');
+  const [channelMode, setChannelMode] = useState<'rgb' | 'lum'>('lum');
 
-  // Listen to canvas updates or periodic sampling of current rendered image
   useEffect(() => {
     const updateHistogram = () => {
       const mainCanvas = document.querySelector('canvas') as HTMLCanvasElement | null;
@@ -22,13 +21,13 @@ export const HistogramView: React.FC<HistogramViewProps> = ({ metadata }) => {
       }
     };
 
-    const interval = setInterval(updateHistogram, 500);
+    const interval = setInterval(updateHistogram, 400);
     updateHistogram();
 
     return () => clearInterval(interval);
   }, []);
 
-  // Draw histogram curve on mini canvas
+  // Draw monochrome precision curve on mini canvas
   useEffect(() => {
     if (!histData || !canvasRef.current) return;
     const canvas = canvasRef.current;
@@ -39,12 +38,12 @@ export const HistogramView: React.FC<HistogramViewProps> = ({ metadata }) => {
     const h = canvas.height;
     ctx.clearRect(0, 0, w, h);
 
-    // Background grid
-    ctx.fillStyle = '#090d16';
+    // Background base
+    ctx.fillStyle = '#09090b';
     ctx.fillRect(0, 0, w, h);
 
-    // Vertical third guidelines
-    ctx.strokeStyle = '#1e293b';
+    // Zone grid dividers (Zone System)
+    ctx.strokeStyle = '#27272a';
     ctx.lineWidth = 1;
     for (let i = 1; i < 4; i++) {
       const x = (w / 4) * i;
@@ -56,7 +55,7 @@ export const HistogramView: React.FC<HistogramViewProps> = ({ metadata }) => {
 
     const max = histData.maxCount || 1;
 
-    const drawChannel = (arr: Uint32Array, color: string, fillStyle?: string) => {
+    const drawCurve = (arr: Uint32Array, strokeStyle: string, fillStyle?: string) => {
       ctx.beginPath();
       ctx.moveTo(0, h);
       for (let i = 0; i < 256; i++) {
@@ -69,124 +68,88 @@ export const HistogramView: React.FC<HistogramViewProps> = ({ metadata }) => {
         ctx.fillStyle = fillStyle;
         ctx.fill();
       }
-      ctx.strokeStyle = color;
+      ctx.strokeStyle = strokeStyle;
       ctx.lineWidth = 1.2;
       ctx.stroke();
     };
 
-    ctx.globalCompositeOperation = 'screen';
-
-    if (channelMode === 'rgb') {
-      drawChannel(histData.r, 'rgba(239, 68, 68, 0.85)', 'rgba(239, 68, 68, 0.15)');
-      drawChannel(histData.g, 'rgba(34, 197, 94, 0.85)', 'rgba(34, 197, 94, 0.15)');
-      drawChannel(histData.b, 'rgba(59, 130, 246, 0.85)', 'rgba(59, 130, 246, 0.15)');
-    } else if (channelMode === 'lum') {
-      ctx.globalCompositeOperation = 'source-over';
-      drawChannel(histData.lum, '#f8fafc', 'rgba(248, 250, 252, 0.2)');
-    } else if (channelMode === 'r') {
-      ctx.globalCompositeOperation = 'source-over';
-      drawChannel(histData.r, '#ef4444', 'rgba(239, 68, 68, 0.25)');
-    } else if (channelMode === 'g') {
-      ctx.globalCompositeOperation = 'source-over';
-      drawChannel(histData.g, '#22c55e', 'rgba(34, 197, 94, 0.25)');
-    } else if (channelMode === 'b') {
-      ctx.globalCompositeOperation = 'source-over';
-      drawChannel(histData.b, '#3b82f6', 'rgba(59, 130, 246, 0.25)');
+    if (channelMode === 'lum') {
+      drawCurve(histData.lum, '#fafafa', 'rgba(250, 250, 250, 0.12)');
+    } else {
+      // In monochrome RGB mode, draw distinct line weights and stroke styles
+      ctx.setLineDash([2, 2]);
+      drawCurve(histData.r, '#a1a1aa', 'rgba(161, 161, 170, 0.05)');
+      ctx.setLineDash([4, 2]);
+      drawCurve(histData.g, '#d4d4d8', 'rgba(212, 212, 216, 0.05)');
+      ctx.setLineDash([]);
+      drawCurve(histData.b, '#ffffff', 'rgba(255, 255, 255, 0.08)');
     }
-
-    ctx.globalCompositeOperation = 'source-over';
   }, [histData, channelMode]);
 
   return (
-    <div className="bg-slate-950/70 border-b border-slate-800/80 p-3 select-none">
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
-          <Activity className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Live Histogram</span>
+    <div className="bg-zinc-950 border-b border-zinc-800 p-2.5 select-none font-mono">
+      <div className="flex items-center justify-between mb-1.5 text-xs">
+        <div className="flex items-center gap-1.5 font-semibold text-zinc-300">
+          <Activity className="w-3.5 h-3.5 text-zinc-400" />
+          <span className="text-[11px] uppercase tracking-wider">Histogram</span>
         </div>
 
         {/* Channel View Toggle */}
-        <div className="flex items-center bg-slate-900 rounded-lg p-0.5 border border-slate-800 text-[10px]">
-          <button
-            onClick={() => setChannelMode('rgb')}
-            className={`px-1.5 py-0.5 rounded font-bold transition-colors ${
-              channelMode === 'rgb' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            RGB
-          </button>
+        <div className="flex items-center bg-zinc-900 rounded p-0.5 border border-zinc-800 text-[10px]">
           <button
             onClick={() => setChannelMode('lum')}
-            className={`px-1.5 py-0.5 rounded font-bold transition-colors ${
-              channelMode === 'lum' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'
+            className={`px-2 py-0.5 rounded font-mono transition-colors ${
+              channelMode === 'lum' ? 'bg-zinc-800 text-zinc-100 font-bold' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             LUM
           </button>
           <button
-            onClick={() => setChannelMode('r')}
-            className={`px-1.5 py-0.5 rounded font-bold transition-colors ${
-              channelMode === 'r' ? 'bg-red-950 text-red-400' : 'text-red-600/70'
+            onClick={() => setChannelMode('rgb')}
+            className={`px-2 py-0.5 rounded font-mono transition-colors ${
+              channelMode === 'rgb' ? 'bg-zinc-800 text-zinc-100 font-bold' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
-            R
-          </button>
-          <button
-            onClick={() => setChannelMode('g')}
-            className={`px-1.5 py-0.5 rounded font-bold transition-colors ${
-              channelMode === 'g' ? 'bg-emerald-950 text-emerald-400' : 'text-emerald-600/70'
-            }`}
-          >
-            G
-          </button>
-          <button
-            onClick={() => setChannelMode('b')}
-            className={`px-1.5 py-0.5 rounded font-bold transition-colors ${
-              channelMode === 'b' ? 'bg-blue-950 text-blue-400' : 'text-blue-600/70'
-            }`}
-          >
-            B
+            RGB
           </button>
         </div>
       </div>
 
       {/* Histogram Canvas */}
-      <div className="relative rounded-lg overflow-hidden border border-slate-800/80 shadow-inner">
-        <canvas ref={canvasRef} width={280} height={70} className="w-full h-[70px] block" />
+      <div className="relative rounded overflow-hidden border border-zinc-800 bg-zinc-950">
+        <canvas ref={canvasRef} width={280} height={60} className="w-full h-[60px] block" />
 
         {/* Clipping Warnings */}
         {histData && histData.shadowClippingPercent > 1.5 && (
-          <div className="absolute top-1 left-1.5 flex items-center gap-1 bg-blue-950/80 border border-blue-500/40 text-blue-300 px-1.5 py-0.5 rounded text-[9px] font-bold">
-            <AlertTriangle className="w-2.5 h-2.5" />
-            <span>Shadow Clip {histData.shadowClippingPercent.toFixed(1)}%</span>
+          <div className="absolute top-1 left-1 flex items-center gap-1 bg-zinc-900/90 border border-zinc-700 text-zinc-200 px-1.5 py-0.5 rounded text-[9px] font-mono">
+            <span>△ CLIP {histData.shadowClippingPercent.toFixed(1)}%</span>
           </div>
         )}
 
         {histData && histData.highlightClippingPercent > 1.5 && (
-          <div className="absolute top-1 right-1.5 flex items-center gap-1 bg-rose-950/80 border border-rose-500/40 text-rose-300 px-1.5 py-0.5 rounded text-[9px] font-bold">
-            <AlertTriangle className="w-2.5 h-2.5" />
-            <span>Highlight Clip {histData.highlightClippingPercent.toFixed(1)}%</span>
+          <div className="absolute top-1 right-1 flex items-center gap-1 bg-zinc-900/90 border border-zinc-700 text-zinc-200 px-1.5 py-0.5 rounded text-[9px] font-mono">
+            <span>△ PEAK {histData.highlightClippingPercent.toFixed(1)}%</span>
           </div>
         )}
       </div>
 
       {/* EXIF Metadata Bar */}
       {metadata && (
-        <div className="mt-2 pt-2 border-t border-slate-800/60 grid grid-cols-4 gap-1 text-[10px] text-slate-400 font-mono">
+        <div className="mt-2 pt-1.5 border-t border-zinc-850 grid grid-cols-4 gap-1 text-[10px] text-zinc-400 font-mono">
           <div className="flex items-center gap-1">
-            <Camera className="w-3 h-3 text-slate-500" />
+            <Camera className="w-3 h-3 text-zinc-500" />
             <span className="truncate">{metadata.iso ? `ISO ${metadata.iso}` : 'ISO 100'}</span>
           </div>
           <div className="flex items-center gap-1">
-            <Aperture className="w-3 h-3 text-slate-500" />
+            <Aperture className="w-3 h-3 text-zinc-500" />
             <span>{metadata.aperture || 'f/2.8'}</span>
           </div>
           <div className="flex items-center gap-1">
-            <Clock className="w-3 h-3 text-slate-500" />
+            <Clock className="w-3 h-3 text-zinc-500" />
             <span>{metadata.shutterSpeed || '1/250s'}</span>
           </div>
           <div className="flex items-center gap-1 justify-end">
-            <span className="text-indigo-400 font-semibold">{metadata.focalLength || '35mm'}</span>
+            <span className="text-zinc-200 font-semibold">{metadata.focalLength || '35mm'}</span>
           </div>
         </div>
       )}

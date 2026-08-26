@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 export interface ToastMessage {
   id: string;
@@ -17,32 +17,28 @@ export const ToastContainer: React.FC<ToastProps> = ({ toasts, onDismiss }) => {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 max-w-sm pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm pointer-events-none select-none">
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl shadow-2xl border backdrop-blur-md transition-all duration-300 transform translate-y-0 ${
-            toast.type === 'success'
-              ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-100'
-              : toast.type === 'error'
-              ? 'bg-rose-950/90 border-rose-500/40 text-rose-100'
-              : 'bg-slate-900/90 border-slate-700 text-slate-100'
-          }`}
+          className="pointer-events-auto flex items-start gap-3 p-3.5 rounded-xl shadow-xl border border-[#2A2A2A] bg-[#0D0D0D] text-zinc-100 backdrop-blur-md transition-all"
         >
-          {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />}
-          {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />}
-          {toast.type === 'info' && <Info className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" />}
+          <div className="w-5 h-5 rounded flex items-center justify-center font-mono text-xs font-bold bg-[#141414] text-white border border-[#2A2A2A] shrink-0 mt-0.5">
+            {toast.type === 'success' && '✓'}
+            {toast.type === 'error' && '×'}
+            {toast.type === 'info' && 'ℹ'}
+          </div>
 
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-semibold tracking-wide">{toast.title}</h4>
-            {toast.message && <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">{toast.message}</p>}
+            <h4 className="text-xs font-semibold text-white tracking-tight">{toast.title}</h4>
+            {toast.message && <p className="text-[11px] text-[#A0A0A0] mt-0.5 leading-relaxed">{toast.message}</p>}
           </div>
 
           <button
             onClick={() => onDismiss(toast.id)}
-            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1 rounded text-zinc-400 hover:text-white hover:bg-[#141414] transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       ))}

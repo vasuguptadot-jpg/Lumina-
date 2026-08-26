@@ -777,7 +777,7 @@ Return ONLY the clean, noise-free, high-definition photograph.`;
     const cleanImg = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.7-flash',
       contents: {
         parts: [
           {
@@ -2418,6 +2418,324 @@ Return ONLY valid JSON matching this schema:
       return { success: true, data: parsed };
     } catch (e: any) {
       return { success: false, error: "Failed to parse AI photo tagging response." };
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // AI-NATIVE EDITING ARCHITECTURE & 6-PILLAR SCENE DECOMPOSITION
+  // --------------------------------------------------------------------------
+  if (endpoint === 'ai-native-decompose') {
+    const { imageBase64 } = body;
+    if (!imageBase64) throw new Error("Image data is required");
+
+    const cleanImg = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+
+    const decompositionPrompt = `You are the Neural Core of an AI-Native Photo Editing Engine.
+Unlike legacy editors that simply apply flat filters or separate AI tools, your job is to deeply understand the photograph across the 6 Fundamental Pillars of visual architecture:
+1. SUBJECTS (People, faces, focal elements, skin tones, pose, foreground depth)
+2. OBJECTS (Context props, secondary objects, and unwanted distractions/photobombers)
+3. LIGHT (3D key light vector, azimuth/elevation, ambient color temp Kelvin, shadow density, Zone System distribution)
+4. DEPTH (Monocular 3D spatial depth, foreground/midground/background Z-planes, focal length estimate, suggested bokeh f-stop)
+5. COLORS (Harmonic color palette, harmony classification, skin tone vector alignment, gamut balance)
+6. COMPOSITION (Rule of thirds score, golden spiral focal match, horizon tilt in degrees, visual weight distribution, smart crop recommendations)
+
+Then, configure precision operations for the 3-Track Editing Engine:
+- Track A (Pixel Edits): Calibrated exposure, tone curves, shadows/highlights, HSL color grade, selective luminance masking
+- Track B (Vector Edits): Dynamic composition overlay guides, golden spiral, negative-space watermark placement
+- Track C (AI Generative Edits): 3D Relighting vector, depth-of-field separation, distraction cleanup recommendations
+
+Analyze this image and return a JSON object with this EXACT structure:
+{
+  "id": "decomp_${Date.now()}",
+  "timestamp": ${Date.now()},
+  "sceneSummary": "Concise 1-sentence photographic summary",
+  "genre": "portrait" | "landscape" | "street" | "architecture" | "product" | "wildlife" | "night" | "creative",
+  "subjects": [
+    {
+      "id": "subj_1",
+      "label": "Primary Subject Title",
+      "category": "person" | "face" | "animal" | "vehicle" | "product" | "architecture" | "focal_element",
+      "confidence": 0.95,
+      "boundingBox": { "x": 0.2, "y": 0.15, "width": 0.6, "height": 0.7 },
+      "depthLayer": "foreground" | "midground" | "background",
+      "isPrimarySubject": true,
+      "skinToneDescription": "Natural warm tone",
+      "facialExpression": "Engaged / confident",
+      "poseDescription": "Centered editorial framing",
+      "recommendedActions": ["Isolate subject luminance", "Enhance catchlights", "Smooth skin with texture retention"]
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj_1",
+      "label": "Object Description",
+      "category": "prop" | "distraction" | "photobomber" | "wire" | "text" | "trash" | "vehicle" | "sign" | "natural_element",
+      "confidence": 0.88,
+      "boundingBox": { "x": 0.8, "y": 0.6, "width": 0.15, "height": 0.2 },
+      "isDistraction": true,
+      "distractionSeverity": 65,
+      "removalRationale": "Edge clutter detracting from main focal subject"
+    }
+  ],
+  "light": {
+    "ambientTempKelvin": 5500,
+    "ambientTempLabel": "Warm Afternoon Daylight",
+    "keyLight": {
+      "azimuthDeg": 45,
+      "elevationDeg": 35,
+      "intensity": 75,
+      "colorHex": "#fff4e0",
+      "softness": 60,
+      "sourceType": "sun" | "studio_strobe" | "window" | "neon" | "ambient_sky" | "indoor_lamp"
+    },
+    "fillLight": {
+      "ratio": 40,
+      "ambientColorHex": "#c7d2fe",
+      "bounceIntensity": 30
+    },
+    "shadowDensity": 45,
+    "zoneSystemDistribution": {
+      "zone0_2_shadows": 15,
+      "zone3_7_midtones": 70,
+      "zone8_10_highlights": 15
+    },
+    "dynamicRangeHeadroom": "balanced_high_dr",
+    "lightMood": "Cinematic directional side light with soft wrap"
+  },
+  "depth": {
+    "foregroundZ": 0.2,
+    "midgroundZ": 0.5,
+    "backgroundZ": 0.85,
+    "estimatedFocalLength": "50mm f/1.8",
+    "estimatedSensorFormat": "Full Frame 35mm",
+    "estimatedFocalPlane": "subject_tack_sharp",
+    "suggestedApertureSimulation": 2.0,
+    "atmosphericHazeDensity": 15,
+    "depthPlanesCount": 3
+  },
+  "colors": {
+    "dominantPalette": [
+      { "hex": "#d97706", "name": "Warm Amber", "coveragePct": 35, "role": "primary" },
+      { "hex": "#1e3a8a", "name": "Deep Cobalt", "coveragePct": 25, "role": "secondary" },
+      { "hex": "#f3f4f6", "name": "Soft Highlights", "coveragePct": 20, "role": "highlight" },
+      { "hex": "#111827", "name": "Rich Shadow Black", "coveragePct": 15, "role": "shadow" },
+      { "hex": "#10b981", "name": "Accent Emerald", "coveragePct": 5, "role": "accent" }
+    ],
+    "harmonyType": "Complementary",
+    "harmonyScore": 88,
+    "skinToneVector": {
+      "detected": true,
+      "hueDeg": 28,
+      "isAlignedWithSkinLine": true,
+      "deviation": 2.1
+    },
+    "colorContrastRatio": 4.5,
+    "suggestedColorMood": "Editorial Cinematic Warmth"
+  },
+  "composition": {
+    "ruleOfThirdsScore": 82,
+    "primaryFocalIntersection": "top-right",
+    "goldenSpiralFocalMatch": 78,
+    "horizonTiltDeg": 0.4,
+    "leadingLinesCount": 2,
+    "visualBalance": {
+      "leftWeightPct": 45,
+      "rightWeightPct": 55,
+      "topWeightPct": 40,
+      "bottomWeightPct": 60,
+      "balanceStatus": "perfectly_balanced"
+    },
+    "suggestedSmartCrops": [
+      {
+        "aspectRatioLabel": "4:5 Vertical Portrait",
+        "cropBox": { "x": 0.1, "y": 0.05, "width": 0.8, "height": 0.9 },
+        "rationale": "Tightens focal subject alignment on upper intersection grid",
+        "compositionImprovementPct": 18
+      },
+      {
+        "aspectRatioLabel": "16:9 Cinematic Widescreen",
+        "cropBox": { "x": 0.0, "y": 0.2, "width": 1.0, "height": 0.65 },
+        "rationale": "Creates dramatic horizontal leading lines and negative space",
+        "compositionImprovementPct": 12
+      }
+    ]
+  },
+  "recommendedEngineOperations": [
+    {
+      "id": "op_pixel_1",
+      "name": "Subject Luminance Separation",
+      "track": "pixel",
+      "dimension": "light",
+      "description": "Lift midtone exposure on primary subject while deepening background shadows for 3D depth pop",
+      "enabled": true,
+      "intensity": 85,
+      "pixelPayload": {
+        "adjustments": { "exposure": 8, "highlights": -10, "shadows": 12, "clarity": 15, "vibrance": 12 }
+      }
+    },
+    {
+      "id": "op_pixel_2",
+      "name": "Color Harmony Grading",
+      "track": "pixel",
+      "dimension": "colors",
+      "description": "Harmonize warm highlights with cool shadow split toning for rich cinematic color separation",
+      "enabled": true,
+      "intensity": 80,
+      "pixelPayload": {
+        "adjustments": { "temperature": 6, "tint": -2, "saturation": 5 }
+      }
+    },
+    {
+      "id": "op_vector_1",
+      "name": "Golden Spiral & Thirds Alignment",
+      "track": "vector",
+      "dimension": "composition",
+      "description": "Align focal points with mathematical golden ratio and place brand watermark in lowest-weight negative space",
+      "enabled": true,
+      "intensity": 100,
+      "vectorPayload": {
+        "guideType": "golden_spiral",
+        "watermarkPlacement": { "x": 0.85, "y": 0.9, "rationale": "Bottom right corner contains lowest visual weight and avoids subject occlusion" }
+      }
+    },
+    {
+      "id": "op_ai_1",
+      "name": "Neural 3D Light Wrap & Fill",
+      "track": "ai",
+      "dimension": "light",
+      "description": "Recalculate specular rim light and wrap gentle ambient bounce light across subject contours",
+      "enabled": true,
+      "intensity": 75,
+      "aiPayload": {
+        "actionType": "3d_relight",
+        "relightParams": { "azimuthDeg": 45, "elevationDeg": 35, "intensity": 70, "colorHex": "#fff0db" }
+      }
+    },
+    {
+      "id": "op_ai_2",
+      "name": "Optical Depth Separation (f/2.0 Bokeh)",
+      "track": "ai",
+      "dimension": "depth",
+      "description": "Simulate natural shallow depth of field, rendering midground/background in soft creamy bokeh",
+      "enabled": true,
+      "intensity": 70,
+      "aiPayload": {
+        "actionType": "bokeh_depth",
+        "depthBlurParams": { "fStop": 2.0, "focalDepth": 0.25, "bokehShape": "circle" }
+      }
+    }
+  ]
+}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.7-flash',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: cleanImg,
+            },
+          },
+          { text: decompositionPrompt },
+        ],
+      },
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    try {
+      const parsed = JSON.parse(response.text || '{}');
+      return { success: true, data: parsed };
+    } catch (e: any) {
+      return { success: false, error: "Failed to parse AI scene decomposition data." };
+    }
+  }
+
+  if (endpoint === 'ai-native-director-execute') {
+    const { imageBase64, userPrompt, currentDecomposition } = body;
+    if (!imageBase64) throw new Error("Image data is required");
+    if (!userPrompt) throw new Error("Director instruction prompt is required");
+
+    const cleanImg = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+
+    const directorPrompt = `You are the AI Director of an AI-Native Photo Editing Engine.
+The user wants to execute this high-level creative vision on the photo: "${userPrompt}".
+
+Unlike naive editors, you operate the editing engine directly across all 3 tracks:
+1. Track A: PIXEL EDITS (Master exposure, contrast, highlights, shadows, whites, blacks, temp, tint, vibrance, clarity, tone curves)
+2. Track B: VECTOR EDITS (Composition cropping recommendation, guide overlays, smart negative-space watermark placement)
+3. Track C: AI GENERATIVE EDITS (3D light vector angles, depth plane bokeh, object distraction cleanups)
+
+Contextual Scene Data:
+${JSON.stringify(currentDecomposition ? { genre: currentDecomposition.genre, light: currentDecomposition.light, depth: currentDecomposition.depth, colors: currentDecomposition.colors } : {})}
+
+Return a comprehensive JSON blueprint with:
+{
+  "directorPlanSummary": "1-2 sentences explaining how the AI will orchestrate pixel, vector, and AI edits to achieve the user's vision.",
+  "recommendedRecipeTitle": "Concise evocative recipe name e.g. 'Sunset Golden Hour & Editorial Pop'",
+  "operations": [
+    {
+      "id": string,
+      "name": string,
+      "track": "pixel" | "vector" | "ai",
+      "dimension": "subjects" | "objects" | "light" | "depth" | "colors" | "composition",
+      "description": string,
+      "enabled": true,
+      "intensity": number (0-100),
+      "pixelPayload": {
+        "adjustments": {
+          "exposure": number (-50 to 50),
+          "contrast": number (-50 to 50),
+          "highlights": number (-70 to 70),
+          "shadows": number (-70 to 70),
+          "whites": number (-50 to 50),
+          "blacks": number (-50 to 50),
+          "temperature": number (-50 to 50),
+          "tint": number (-30 to 30),
+          "saturation": number (-40 to 40),
+          "vibrance": number (-40 to 50),
+          "clarity": number (-30 to 40),
+          "sharpness": number (0 to 60)
+        }
+      },
+      "vectorPayload": {
+        "guideType": "rule_of_thirds" | "golden_spiral",
+        "watermarkPlacement": { "x": number, "y": number, "rationale": string }
+      },
+      "aiPayload": {
+        "actionType": "3d_relight" | "bokeh_depth" | "remove_distraction" | "subject_pop",
+        "relightParams": { "azimuthDeg": number, "elevationDeg": number, "intensity": number, "colorHex": string },
+        "depthBlurParams": { "fStop": number, "focalDepth": number, "bokehShape": string }
+      }
+    }
+  ]
+}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.7-flash',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: cleanImg,
+            },
+          },
+          { text: directorPrompt },
+        ],
+      },
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    try {
+      const parsed = JSON.parse(response.text || '{}');
+      return { success: true, data: parsed };
+    } catch (e: any) {
+      return { success: false, error: "Failed to parse AI Director response." };
     }
   }
 

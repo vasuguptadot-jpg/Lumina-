@@ -148,6 +148,16 @@ export const SAMPLE_IMAGES: SampleImage[] = [
     format: 'jpeg',
     description: 'Modern geometric architecture with soft diffused daylight and sharp angles.',
   },
+  {
+    id: 'sample-screenshot-mobile-app',
+    name: 'Mobile App Screen - Finance Dashboard.png',
+    category: 'Architecture',
+    url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=90',
+    width: 1200,
+    height: 2400,
+    format: 'png',
+    description: 'Mobile App User Interface screenshot. Ideal for testing Screenshot Studio, realistic iPhone 16 Pro device frames, clean status bars, and 3D floating perspective.',
+  },
 ];
 
 export function createSampleImageFile(sample: SampleImage): ImageFile {

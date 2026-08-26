@@ -1,5 +1,12 @@
+/**
+ * Lumina Studio Pro - Production Cloud Sync Gateway
+ * Bridges local storage with real Firebase Cloud persistence.
+ */
+
 import { Project } from '../types/editor';
 import { saveProjectToDB } from './db';
+import { cloudSyncEngine } from '../services/cloudSyncEngine';
+import { authService } from '../services/authService';
 
 export interface CloudSyncMetadata {
   lastSyncedAt: number;
@@ -26,25 +33,38 @@ export function getOrCreateDeviceId(): { deviceId: string; deviceName: string } 
   return { deviceId, deviceName };
 }
 
-export async function syncProjectToCloud(project: Project): Promise<{ success: boolean; project: Project; message: string }> {
-  // Simulate cloud synchronization with encrypted payload packaging
-  const { deviceId, deviceName } = getOrCreateDeviceId();
-  
-  await new Promise((resolve) => setTimeout(resolve, 800)); // Network sync latency simulation
+/**
+ * Genuine cloud sync pushing project to Firestore with offline queue fallback
+ */
+export async function syncProjectToCloud(
+  project: Project
+): Promise<{ success: boolean; project: Project; message: string }> {
+  const { deviceName } = getOrCreateDeviceId();
+  const isAuthenticated = authService.isAuthenticated();
 
-  const updatedProject: Project = {
-    ...project,
-    updatedAt: Date.now(),
-    cloudSyncStatus: 'synced',
-    cloudRevision: (project.cloudRevision || 0) + 1,
-  };
+  if (!isAuthenticated) {
+    // Saved locally only when unauthenticated
+    await saveProjectToDB(project);
+    return {
+      success: true,
+      project,
+      message: `Project preserved locally in IndexedDB. Sign in to enable multi-device Cloud Vault sync.`,
+    };
+  }
 
-  await saveProjectToDB(updatedProject);
+  await cloudSyncEngine.pushProjectState(project);
+  const state = cloudSyncEngine.getSyncState();
 
   return {
-    success: true,
-    project: updatedProject,
-    message: `Successfully synchronized revision #${updatedProject.cloudRevision} to Lumina Cloud Vault for ${deviceName}.`,
+    success: state !== 'ERROR',
+    project: {
+      ...project,
+      cloudSyncStatus: state === 'SYNCED' ? 'synced' : 'syncing',
+    },
+    message:
+      state === 'SYNCED'
+        ? `Successfully synchronized revision #${(project.cloudRevision || 1) + 1} to Lumina Cloud Vault for ${deviceName}.`
+        : `Changes queued for synchronization when connectivity stabilizes.`,
   };
 }
 

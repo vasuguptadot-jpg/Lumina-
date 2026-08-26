@@ -16,6 +16,7 @@ import {
 } from '../types/editor';
 import { applyCropAndTransform } from './cropEngine';
 import { processImagePipeline } from './colorPipeline';
+import { renderTiledImagePipeline } from './tiledRenderer';
 import { encodeCanvasToTiff } from './tiffEncoder';
 import { encodeCanvasToPsd } from './psdEncoder';
 import { encodeCanvasToDng } from './dngEncoder';
@@ -26,7 +27,6 @@ export type ExportFormat =
   | 'webp'
   | 'avif'
   | 'tiff'
-  | 'heic'
   | 'dng'
   | 'psd';
 
@@ -256,7 +256,7 @@ export async function exportHighResImage(options: FullRenderOptions): Promise<{
   finalCanvas.width = targetW;
   finalCanvas.height = targetH;
 
-  processImagePipeline({
+  const tiledSuccess = await renderTiledImagePipeline({
     sourceCanvas: renderSourceCanvas,
     targetCanvas: finalCanvas,
     adjustments,
@@ -273,8 +273,29 @@ export async function exportHighResImage(options: FullRenderOptions): Promise<{
     designElements,
     drawingStrokes,
     colorManagement,
-    highQuality: true,
   });
+
+  if (!tiledSuccess) {
+    processImagePipeline({
+      sourceCanvas: renderSourceCanvas,
+      targetCanvas: finalCanvas,
+      adjustments,
+      toneCurves,
+      hsl,
+      activePresetId,
+      presetStrength,
+      customPresets,
+      watermark,
+      border,
+      masks,
+      retouchStrokes,
+      typography,
+      designElements,
+      drawingStrokes,
+      colorManagement,
+      highQuality: true,
+    });
+  }
 
   // 5. Output Sharpening
   if (exportConfig.outputSharpening && exportConfig.outputSharpening !== 'off') {
@@ -296,21 +317,6 @@ export async function exportHighResImage(options: FullRenderOptions): Promise<{
     blob = encodeCanvasToPsd(finalCanvas, { dpi, author: metadata?.author, copyright: metadata?.copyright });
   } else if (fmt === 'dng') {
     blob = encodeCanvasToDng(finalCanvas, { dpi, metadata });
-  } else if (fmt === 'heic') {
-    // High Efficiency Image Container - encoded with progressive high quality
-    blob = await new Promise<Blob>((resolve) => {
-      finalCanvas.toBlob(
-        (b) => {
-          if (b) {
-            resolve(new Blob([b], { type: 'image/heic' }));
-          } else {
-            resolve(new Blob([], { type: 'image/heic' }));
-          }
-        },
-        'image/webp',
-        exportConfig.quality
-      );
-    });
   } else if (fmt === 'avif') {
     // AV1 Image File Format
     blob = await new Promise<Blob>((resolve) => {

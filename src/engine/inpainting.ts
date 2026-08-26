@@ -125,3 +125,49 @@ export function smartClientInpaint(
   ctx.putImageData(imgData, 0, 0);
   return resultCanvas;
 }
+
+/**
+ * High-level async wrapper for smartClientInpaint that handles HTMLCanvasElement, HTMLImageElement, or Data URLs
+ */
+export async function inpaintImageLocally(
+  imageSource: string | HTMLCanvasElement,
+  maskSource: string | HTMLCanvasElement,
+  radius: number = 5
+): Promise<string> {
+  const loadImage = (src: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  };
+
+  let imageCanvas: HTMLCanvasElement;
+  if (imageSource instanceof HTMLCanvasElement) {
+    imageCanvas = imageSource;
+  } else {
+    const img = await loadImage(imageSource);
+    imageCanvas = document.createElement('canvas');
+    imageCanvas.width = img.naturalWidth || img.width;
+    imageCanvas.height = img.naturalHeight || img.height;
+    const ctx = imageCanvas.getContext('2d');
+    if (ctx) ctx.drawImage(img, 0, 0);
+  }
+
+  let maskCanvas: HTMLCanvasElement;
+  if (maskSource instanceof HTMLCanvasElement) {
+    maskCanvas = maskSource;
+  } else {
+    const maskImg = await loadImage(maskSource);
+    maskCanvas = document.createElement('canvas');
+    maskCanvas.width = imageCanvas.width;
+    maskCanvas.height = imageCanvas.height;
+    const ctx = maskCanvas.getContext('2d');
+    if (ctx) ctx.drawImage(maskImg, 0, 0, maskCanvas.width, maskCanvas.height);
+  }
+
+  const outputCanvas = smartClientInpaint(imageCanvas, maskCanvas);
+  return outputCanvas.toDataURL('image/png');
+}

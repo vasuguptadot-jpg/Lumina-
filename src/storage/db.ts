@@ -1,59 +1,56 @@
 import { Project, FilterPreset } from '../types/editor';
+import { AutomationWorkflow } from '../types/automation';
+import {
+  openIndexedDB,
+  saveLuminaProject,
+  getAllLuminaProjects,
+  getLuminaProjectById,
+  deleteLuminaProject,
+  saveSourceAsset,
+  getSourceAsset,
+  deleteSourceAsset,
+  saveThumbnail,
+  getThumbnailByProjectId,
+  generateThumbnailDataUrl,
+  saveProjectVersionRecord,
+  getProjectVersionRecords,
+  deleteProjectVersionRecord,
+  saveRecoverySnapshotRecord,
+  getAllRecoverySnapshots,
+  deleteRecoverySnapshotRecord,
+  clearRecoverySnapshotsForProject,
+  addRecoveryJournalEntry,
+  getStorageQuotaInfo,
+  purgeStaleStorage,
+  STORE_PRESETS,
+  STORE_PLUGINS,
+  STORE_AUTOMATIONS,
+} from './indexedDbManager';
 
-const DB_NAME = 'LuminaStudioPro_DB';
-const DB_VERSION = 1;
-const STORE_PROJECTS = 'projects';
-const STORE_PRESETS = 'custom_presets';
+// Export all storage managers & types
+export * from './indexedDbManager';
+export * from './schemaMigration';
+export * from './portableProject';
+export * from './crashRecoveryEngine';
+export * from './autosaveEngine';
+export * from './tabConflictManager';
 
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_PROJECTS)) {
-        const projectStore = db.createObjectStore(STORE_PROJECTS, { keyPath: 'id' });
-        projectStore.createIndex('updatedAt', 'updatedAt', { unique: false });
-      }
-      if (!db.objectStoreNames.contains(STORE_PRESETS)) {
-        db.createObjectStore(STORE_PRESETS, { keyPath: 'id' });
-      }
-    };
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
+// =============================================================
+// Legacy Backward Compatibility Wrappers
+// =============================================================
 
 export async function saveProjectToDB(project: Project): Promise<void> {
   try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_PROJECTS, 'readwrite');
-      const store = tx.objectStore(STORE_PROJECTS);
-      const req = store.put(project);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    await saveLuminaProject(project);
   } catch (err) {
     console.error('Failed to save project to IndexedDB:', err);
+    throw err;
   }
 }
 
 export async function getAllProjectsFromDB(): Promise<Project[]> {
   try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_PROJECTS, 'readonly');
-      const store = tx.objectStore(STORE_PROJECTS);
-      const req = store.getAll();
-      req.onsuccess = () => {
-        const list = req.result as Project[];
-        list.sort((a, b) => b.updatedAt - a.updatedAt);
-        resolve(list);
-      };
-      req.onerror = () => reject(req.error);
-    });
+    return await getAllLuminaProjects();
   } catch (err) {
     console.error('Failed to load projects from IndexedDB:', err);
     return [];
@@ -62,14 +59,7 @@ export async function getAllProjectsFromDB(): Promise<Project[]> {
 
 export async function getProjectByIdFromDB(id: string): Promise<Project | null> {
   try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_PROJECTS, 'readonly');
-      const store = tx.objectStore(STORE_PROJECTS);
-      const req = store.get(id);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error);
-    });
+    return await getLuminaProjectById(id);
   } catch (err) {
     console.error(`Failed to get project ${id}:`, err);
     return null;
@@ -78,22 +68,19 @@ export async function getProjectByIdFromDB(id: string): Promise<Project | null> 
 
 export async function deleteProjectFromDB(id: string): Promise<void> {
   try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_PROJECTS, 'readwrite');
-      const store = tx.objectStore(STORE_PROJECTS);
-      const req = store.delete(id);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    await deleteLuminaProject(id);
   } catch (err) {
     console.error(`Failed to delete project ${id}:`, err);
   }
 }
 
+// -------------------------------------------------------------
+// Presets, Plugins & Automation Stores
+// -------------------------------------------------------------
+
 export async function saveCustomPresetToDB(preset: FilterPreset): Promise<void> {
   try {
-    const db = await openDB();
+    const db = await openIndexedDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_PRESETS, 'readwrite');
       const store = tx.objectStore(STORE_PRESETS);
@@ -108,7 +95,7 @@ export async function saveCustomPresetToDB(preset: FilterPreset): Promise<void> 
 
 export async function getAllCustomPresetsFromDB(): Promise<FilterPreset[]> {
   try {
-    const db = await openDB();
+    const db = await openIndexedDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_PRESETS, 'readonly');
       const store = tx.objectStore(STORE_PRESETS);
@@ -124,7 +111,7 @@ export async function getAllCustomPresetsFromDB(): Promise<FilterPreset[]> {
 
 export async function deleteCustomPresetFromDB(id: string): Promise<void> {
   try {
-    const db = await openDB();
+    const db = await openIndexedDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_PRESETS, 'readwrite');
       const store = tx.objectStore(STORE_PRESETS);
@@ -139,7 +126,7 @@ export async function deleteCustomPresetFromDB(id: string): Promise<void> {
 
 export async function saveBatchCustomPresetsToDB(presets: FilterPreset[]): Promise<void> {
   try {
-    const db = await openDB();
+    const db = await openIndexedDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_PRESETS, 'readwrite');
       const store = tx.objectStore(STORE_PRESETS);
@@ -149,5 +136,101 @@ export async function saveBatchCustomPresetsToDB(presets: FilterPreset[]): Promi
     });
   } catch (err) {
     console.error('Failed to save batch presets:', err);
+  }
+}
+
+export async function savePluginToDB(plugin: any): Promise<void> {
+  try {
+    const db = await openIndexedDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_PLUGINS, 'readwrite');
+      const store = tx.objectStore(STORE_PLUGINS);
+      const req = store.put(plugin);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error('Failed to save plugin to IndexedDB:', err);
+  }
+}
+
+export async function getAllCustomPluginsFromDB(): Promise<any[]> {
+  try {
+    const db = await openIndexedDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_PLUGINS, 'readonly');
+      const store = tx.objectStore(STORE_PLUGINS);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error('Failed to load custom plugins:', err);
+    return [];
+  }
+}
+
+export async function deletePluginFromDB(id: string): Promise<void> {
+  try {
+    const db = await openIndexedDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_PLUGINS, 'readwrite');
+      const store = tx.objectStore(STORE_PLUGINS);
+      const req = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error(`Failed to delete plugin ${id}:`, err);
+  }
+}
+
+export async function saveAutomationToDB(automation: AutomationWorkflow): Promise<void> {
+  try {
+    const db = await openIndexedDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_AUTOMATIONS, 'readwrite');
+      const store = tx.objectStore(STORE_AUTOMATIONS);
+      const req = store.put(automation);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error('Failed to save automation to IndexedDB:', err);
+  }
+}
+
+export async function getAllAutomationsFromDB(): Promise<AutomationWorkflow[]> {
+  try {
+    const db = await openIndexedDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_AUTOMATIONS, 'readonly');
+      const store = tx.objectStore(STORE_AUTOMATIONS);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const list = req.result as AutomationWorkflow[];
+        list.sort((a, b) => b.updatedAt - a.updatedAt);
+        resolve(list || []);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error('Failed to load custom automations:', err);
+    return [];
+  }
+}
+
+export async function deleteAutomationFromDB(id: string): Promise<void> {
+  try {
+    const db = await openIndexedDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_AUTOMATIONS, 'readwrite');
+      const store = tx.objectStore(STORE_AUTOMATIONS);
+      const req = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error(`Failed to delete automation ${id}:`, err);
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "Lumina Studio Pro - AI & RAW Photo Editor",
-  "description": "Professional offline-first photo editor with RAW & high-res support, Canva-grade graphics design, grid & freeform collage studio, typography suite, batch processing, AI object removal, background replacement, film presets, tone curves, and cloud sync.",
+  "description": "Professional photo editor featuring an AI-native editing architecture with 6-pillar scene understanding (Subjects, Objects, Light, Depth, Colors, Composition) operating a 3-track editing engine (Pixel, Vector, AI Edits), non-destructive edit history, RAW & high-res support, and studio tools.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

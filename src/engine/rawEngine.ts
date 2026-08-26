@@ -1,4 +1,19 @@
-import { DemosaicMethod, RawWbPreset, RawDevelopSettings } from '../types/editor';
+/**
+ * Lumina Studio Pro - Professional RAW Engine Facade
+ * Provides high-level access to the genuine RAW demosaicing, white balance calibration,
+ * and high-dynamic-range pipeline.
+ */
+
+import { DemosaicMethod, RawWbPreset, RawDevelopSettings, WorkingColorSpace } from '../types/editor';
+import {
+  calculateWhiteBalanceGains,
+  developRawSensorBuffer,
+  linearToSrgbGamma,
+  srgbGammaToLinear,
+} from './raw/rawDevelopEngine';
+import { demosaicSensorData, DemosaicResult } from './raw/demosaicEngine';
+import { rawManager } from './raw/rawManager';
+import { rawWorkerOrchestrator } from './raw/rawWorkerManager';
 
 export interface RawWbPresetInfo {
   id: RawWbPreset;
@@ -23,64 +38,9 @@ export const RAW_WB_PRESETS: RawWbPresetInfo[] = [
 
 /**
  * Converts Kelvin Temperature (2000K to 12000K) + Tint (-100 to 100) to RGB Multipliers
- * Based on Tanner Helland's Planckian Blackbody Approximation
  */
 export function kelvinAndTintToRGBGains(kelvin: number, tint = 0): [number, number, number] {
-  const temp = Math.max(2000, Math.min(12000, kelvin)) / 100;
-  let r = 0;
-  let g = 0;
-  let b = 0;
-
-  // Calculate Red
-  if (temp <= 66) {
-    r = 255;
-  } else {
-    r = temp - 60;
-    r = 329.698727446 * Math.pow(r, -0.1332047592);
-    r = Math.max(0, Math.min(255, r));
-  }
-
-  // Calculate Green
-  if (temp <= 66) {
-    g = temp;
-    g = 99.4708025861 * Math.log(g) - 161.1195681661;
-    g = Math.max(0, Math.min(255, g));
-  } else {
-    g = temp - 60;
-    g = 288.1221695283 * Math.pow(g, -0.0755148492);
-    g = Math.max(0, Math.min(255, g));
-  }
-
-  // Calculate Blue
-  if (temp >= 66) {
-    b = 255;
-  } else if (temp <= 19) {
-    b = 0;
-  } else {
-    b = temp - 10;
-    b = 138.5177312231 * Math.log(b) - 305.0447927307;
-    b = Math.max(0, Math.min(255, b));
-  }
-
-  // Normalize gains around daylight 5500K baseline
-  // Standard 5500K base gives R~255, G~235, B~215
-  const baseR = 255;
-  const baseG = 236;
-  const baseB = 217;
-
-  let rGain = (r / baseR);
-  let gGain = (g / baseG);
-  let bGain = (b / baseB);
-
-  // Apply Green/Magenta Tint (-100 to 100)
-  // Positive tint increases magenta (boosts R and B relative to G)
-  // Negative tint increases green (boosts G)
-  const tintFactor = (tint / 100) * 0.25;
-  gGain *= (1 - tintFactor);
-  rGain *= (1 + tintFactor * 0.5);
-  bGain *= (1 + tintFactor * 0.5);
-
-  return [rGain, gGain, bGain];
+  return calculateWhiteBalanceGains('custom', kelvin, tint, [0.55, 1.0, 0.65]);
 }
 
 /**
@@ -90,9 +50,9 @@ export function applyRawExposureRecovery(
   r: number,
   g: number,
   b: number,
-  highlightRecovery: number, // 0 to 100
-  shadowRecovery: number,    // 0 to 100
-  blackLevel: number         // -50 to 50
+  highlightRecovery: number,
+  shadowRecovery: number,
+  blackLevel: number
 ): [number, number, number] {
   // 1. Black level calibration
   if (blackLevel !== 0) {
@@ -108,7 +68,6 @@ export function applyRawExposureRecovery(
     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
     const shadowWeight = Math.max(0, 1 - (lum / 255) * 1.8);
     if (shadowWeight > 0) {
-      // Non-linear shadow boost curve
       const lift = Math.pow(shadowWeight, 1.4) * sFactor * 65;
       r += lift;
       g += lift;
@@ -122,20 +81,13 @@ export function applyRawExposureRecovery(
     const maxChannel = Math.max(r, g, b);
 
     if (maxChannel > 180) {
-      const excess = (maxChannel - 180) / 75; // 0 to 1
+      const excess = (maxChannel - 180) / 75;
       const compress = Math.pow(excess, 1.5) * hFactor * 45;
 
-      // Color reconstruction: If one channel blows out earlier than others,
-      // reconstruct tonal ratio from remaining unclipped channels
-      const minChannel = Math.min(r, g, b);
-      const midChannel = r + g + b - maxChannel - minChannel;
-
-      // Compress specular highlights smoothly
       r = Math.max(0, r - compress * (r / (maxChannel + 0.01)));
       g = Math.max(0, g - compress * (g / (maxChannel + 0.01)));
       b = Math.max(0, b - compress * (b / (maxChannel + 0.01)));
 
-      // Prevent harsh magenta/cyan blown color fringing
       if (excess > 0.6 && hFactor > 0.2) {
         const avg = (r + g + b) / 3;
         const desatFactor = (excess - 0.6) * 2.5 * hFactor;
@@ -197,9 +149,6 @@ export function applyDemosaicAndMoire(
 
     for (let y = 1; y < height - 1; y++) {
       const row = y * width;
-      const topRow = (y - 1) * width;
-      const botRow = (y + 1) * width;
-
       for (let x = 1; x < width - 1; x++) {
         const idx = (row + x) * 4;
         const origR = output[idx];
@@ -207,7 +156,6 @@ export function applyDemosaicAndMoire(
         const origB = output[idx + 2];
         const origY = 0.299 * origR + 0.587 * origG + 0.114 * origB;
 
-        // 3x3 color neighborhood average
         let sumCb = 0;
         let sumCr = 0;
 
@@ -233,7 +181,6 @@ export function applyDemosaicAndMoire(
         const filteredCb = curCb * (1 - moireK) + avgCb * moireK;
         const filteredCr = curCr * (1 - moireK) + avgCr * moireK;
 
-        // Reconstruct RGB from Y, Cb, Cr
         const newR = origY + filteredCr;
         const newB = origY + filteredCb;
         const newG = (origY - 0.299 * newR - 0.114 * newB) / 0.587;
@@ -247,3 +194,12 @@ export function applyDemosaicAndMoire(
 
   ctx.putImageData(new ImageData(output, width, height), 0, 0);
 }
+
+export {
+  rawManager,
+  rawWorkerOrchestrator,
+  demosaicSensorData,
+  developRawSensorBuffer,
+  linearToSrgbGamma,
+  srgbGammaToLinear,
+};

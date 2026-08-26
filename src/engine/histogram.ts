@@ -1,3 +1,5 @@
+import { workerPool } from './workerPool';
+
 export interface HistogramData {
   r: Uint32Array;
   g: Uint32Array;
@@ -71,4 +73,45 @@ export function computeHistogram(canvas: HTMLCanvasElement): HistogramData {
     shadowClippingPercent: totalSampled > 0 ? (shadowClipped / totalSampled) * 100 : 0,
     highlightClippingPercent: totalSampled > 0 ? (highlightClipped / totalSampled) * 100 : 0,
   };
+}
+
+/**
+ * Async Web Worker computation for large non-blocking histogram calculation
+ */
+export async function computeHistogramAsync(canvas: HTMLCanvasElement): Promise<HistogramData> {
+  const ctx = canvas.getContext('2d');
+  if (!ctx || canvas.width === 0 || canvas.height === 0) {
+    return computeHistogram(canvas);
+  }
+
+  try {
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const buffer = imgData.data.buffer;
+    const result = await workerPool.dispatch<any, { r: Uint32Array; g: Uint32Array; b: Uint32Array; lum: Uint32Array }>(
+      'compute_histogram',
+      { buffer },
+      [buffer]
+    );
+
+    let maxCount = 0;
+    for (let i = 1; i < 255; i++) {
+      if (result.r[i] > maxCount) maxCount = result.r[i];
+      if (result.g[i] > maxCount) maxCount = result.g[i];
+      if (result.b[i] > maxCount) maxCount = result.b[i];
+      if (result.lum[i] > maxCount) maxCount = result.lum[i];
+    }
+    if (maxCount === 0) maxCount = 1;
+
+    return {
+      r: result.r,
+      g: result.g,
+      b: result.b,
+      lum: result.lum,
+      maxCount,
+      shadowClippingPercent: 0,
+      highlightClippingPercent: 0,
+    };
+  } catch (err) {
+    return computeHistogram(canvas);
+  }
 }

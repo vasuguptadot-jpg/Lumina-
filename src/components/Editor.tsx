@@ -65,11 +65,24 @@ import { RawOpticsPanel } from './editor/panels/RawOpticsPanel';
 import { DetailPanel } from './editor/panels/DetailPanel';
 import { BlurDepthPanel } from './editor/panels/BlurDepthPanel';
 import { AIImageUnderstandingPanel } from './editor/panels/AIImageUnderstandingPanel';
+import { AINativeArchitecturePanel } from './editor/panels/AINativeArchitecturePanel';
+import { NaturalLanguageEditingPanel } from './editor/panels/NaturalLanguageEditingPanel';
+import { NaturalLanguageEditorBar } from './editor/NaturalLanguageEditorBar';
 import { CompositionAssistantPanel } from './editor/panels/CompositionAssistantPanel';
+import { ScreenshotStudioPanel } from './editor/panels/ScreenshotStudioPanel';
 import { parseImageOrRawFile } from '../engine/rawParser';
 import { DEFAULT_ADJUSTMENTS, DEFAULT_CROP, DEFAULT_HSL, DEFAULT_PROJECT_STATE, DEFAULT_TONE_CURVES } from '../engine/defaultSettings';
 import { getAllCustomPresetsFromDB, saveCustomPresetToDB, deleteCustomPresetFromDB, saveBatchCustomPresetsToDB, saveProjectToDB } from '../storage/db';
 import { requestAiAutoEnhance } from '../services/aiService';
+import { CollaborationPanel } from './editor/panels/CollaborationPanel';
+import { PluginsPanel } from './editor/panels/PluginsPanel';
+import { AutomationPanel } from './editor/panels/AutomationPanel';
+import { DeveloperPanel } from './editor/panels/DeveloperPanel';
+import { SecurityPrivacyPanel } from './editor/panels/SecurityPrivacyPanel';
+import { PerformancePanel } from './editor/panels/PerformancePanel';
+import { CanvasCommentsOverlay } from './collaboration/CanvasCommentsOverlay';
+import { User } from 'firebase/auth';
+import { WorkflowStageId } from '../types/workflow';
 
 interface EditorProps {
   project: Project;
@@ -77,6 +90,22 @@ interface EditorProps {
   onOpenSampleGallery: () => void;
   showToast: (type: 'success' | 'error' | 'info', title: string, msg?: string) => void;
   onOpenExportModal?: () => void;
+  currentUser?: User | null;
+  activeStage?: WorkflowStageId;
+  requestedToolTab?: string;
+  skillMode?: 'beginner' | 'pro';
+  onOpenToolEducation?: (toolId: string) => void;
+  onOpenCollaborationModal?: () => void;
+  onOpenVersionComparison?: () => void;
+  onOpenClientReview?: () => void;
+  onOpenPluginModal?: () => void;
+  onOpenAutomationStudio?: () => void;
+  onOpenDeveloperPlatform?: () => void;
+  onOpenSecurityGovernance?: () => void;
+  onOpenPerformanceModal?: () => void;
+  onOpenUnsplashModal?: () => void;
+  isCommentModeActive?: boolean;
+  onToggleCommentMode?: () => void;
 }
 
 export const Editor: React.FC<EditorProps> = ({
@@ -85,10 +114,61 @@ export const Editor: React.FC<EditorProps> = ({
   onOpenSampleGallery,
   showToast,
   onOpenExportModal,
+  currentUser = null,
+  activeStage = 'develop',
+  requestedToolTab,
+  skillMode = 'pro',
+  onOpenToolEducation,
+  onOpenCollaborationModal = () => {},
+  onOpenVersionComparison = () => {},
+  onOpenClientReview = () => {},
+  onOpenPluginModal = () => {},
+  onOpenAutomationStudio = () => {},
+  onOpenDeveloperPlatform = () => {},
+  onOpenSecurityGovernance = () => {},
+  onOpenPerformanceModal = () => {},
+  onOpenUnsplashModal = () => {},
+  isCommentModeActive = false,
+  onToggleCommentMode = () => {},
 }) => {
   const [activeToolTab, setActiveToolTab] = useState<string>('adjust');
+
+  useEffect(() => {
+    if (requestedToolTab) {
+      setActiveToolTab(requestedToolTab);
+    }
+  }, [requestedToolTab]);
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
   const [isAiProcessing, setIsAiProcessing] = useState<boolean>(false);
+
+  // Sync tool tab with workflow stage change
+  useEffect(() => {
+    switch (activeStage) {
+      case 'develop':
+        setActiveToolTab('adjust');
+        break;
+      case 'select':
+        setActiveToolTab('composition');
+        break;
+      case 'mask':
+        setActiveToolTab('masks');
+        break;
+      case 'retouch':
+        setActiveToolTab('retouch');
+        break;
+      case 'layers':
+        setActiveToolTab('layers');
+        break;
+      case 'ai':
+        setActiveToolTab('ai-tools');
+        break;
+      case 'design':
+        setActiveToolTab('typography');
+        break;
+      default:
+        break;
+    }
+  }, [activeStage]);
 
   // Retouching Studio State
   const [activeRetouchTool, setActiveRetouchTool] = useState<RetouchToolType>('healing-brush');
@@ -478,37 +558,38 @@ export const Editor: React.FC<EditorProps> = ({
   // 12. Active Mask & Layer Selection State
   const [activeMaskId, setActiveMaskId] = useState<string | null>(null);
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
+  const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
 
   // If no photo is loaded yet, display rich drag & drop welcome landing
   if (!project.image?.originalUrl) {
     return (
-      <div className="flex-1 h-full bg-slate-950 flex flex-col items-center justify-center p-6 select-none">
+      <div className="flex-1 h-full bg-zinc-950 flex flex-col items-center justify-center p-6 select-none font-sans text-zinc-100">
         <div className="max-w-xl w-full text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 text-xs font-bold shadow-lg">
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>Next-Gen Pro Photo Studio</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs font-mono">
+            <Sliders className="w-3.5 h-3.5 text-zinc-400" />
+            <span>LUMINA WORKSTATION • ZERO DATA LOSS CERTIFIED</span>
           </div>
 
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
-              Professional Editing, RAW Engine & AI
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
+              Professional RAW & Color Workstation
             </h1>
-            <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
-              Non-destructive color grading, 14-bit RAW processing, AI object removal, background replacement, and lossless master exports.
+            <p className="text-xs sm:text-sm text-zinc-400 mt-2 max-w-md mx-auto leading-relaxed">
+              Deterministic 32-bit floating-point image pipeline, 100+ RAW camera sensor profiles, selective neural masking, and lossless master exports.
             </p>
           </div>
 
           {/* Big Drag and Drop Dropzone */}
-          <label className="border-2 border-dashed border-slate-800 hover:border-indigo-500/80 bg-slate-900/40 hover:bg-slate-900/80 rounded-3xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group shadow-2xl">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-xl group-hover:scale-110 transition-transform mb-4">
-              <UploadCloud className="w-8 h-8" />
+          <label className="border-2 border-dashed border-zinc-800 hover:border-zinc-500 bg-zinc-900/40 hover:bg-zinc-900/80 rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer transition-colors group shadow-2xl">
+            <div className="w-14 h-14 rounded-lg bg-zinc-850 border border-zinc-700 flex items-center justify-center text-zinc-200 group-hover:border-zinc-500 transition-colors mb-4">
+              <UploadCloud className="w-7 h-7" />
             </div>
 
-            <div className="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">
-              Open Image or RAW Sensor File
+            <div className="text-xs sm:text-sm font-semibold text-zinc-200 group-hover:text-white transition-colors">
+              Open Master Image or RAW Sensor File
             </div>
-            <div className="text-xs text-slate-400 mt-1">
-              Supports DNG, CR2, CR3, NEF, ARW, RAF, ORF, RW2, PEF, TIFF, PNG, JPEG (Up to 100 MP)
+            <div className="text-[11px] font-mono text-zinc-500 mt-1">
+              Supports DNG, CR2, CR3, NEF, ARW, RAF, ORF, RW2, PEF, TIFF, PNG, JPEG
             </div>
 
             <input
@@ -520,14 +601,14 @@ export const Editor: React.FC<EditorProps> = ({
           </label>
 
           {/* Quick Demo Gallery Button */}
-          <div className="pt-2 flex items-center justify-center gap-3">
-            <span className="text-xs text-slate-500">or start with high-res sample photos:</span>
+          <div className="pt-2 flex items-center justify-center gap-3 font-mono text-xs">
+            <span className="text-zinc-500">or load calibrated reference asset:</span>
             <button
               onClick={onOpenSampleGallery}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-amber-300 hover:border-amber-500/40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs text-zinc-200 hover:text-white transition-colors"
             >
-              <ImageIcon className="w-3.5 h-3.5" />
-              <span>Browse Demo Gallery</span>
+              <ImageIcon className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Browse Camera Corpus</span>
             </button>
           </div>
         </div>
@@ -536,9 +617,30 @@ export const Editor: React.FC<EditorProps> = ({
   }
 
   return (
-    <div className="flex-1 h-full flex flex-col lg:flex-row overflow-hidden bg-slate-950 select-none">
+    <div className="flex-1 h-full flex flex-col lg:flex-row overflow-hidden bg-zinc-950 select-none text-zinc-100">
       {/* Center Interactive Canvas Viewport */}
-      <div className="flex-1 h-full flex flex-col min-w-0">
+      <div className="flex-1 h-full flex flex-col min-w-0 relative bg-zinc-950">
+        {/* Floating Natural Language Prompt Bar */}
+        <div className="bg-zinc-950 border-b border-zinc-850 px-4 py-1 flex items-center justify-between gap-2">
+          <div className="flex-1 flex justify-center">
+            <NaturalLanguageEditorBar
+              project={project}
+              onUpdateProject={onUpdateProject}
+              onPushHistory={pushHistoryStep}
+              onOpenFullNLPanel={() => setActiveToolTab('nl-edit')}
+              showToast={showToast}
+            />
+          </div>
+          {/* Distraction-Free Toggle */}
+          <button
+            onClick={() => setIsInspectorCollapsed(!isInspectorCollapsed)}
+            className="hidden lg:flex items-center gap-1 px-2 py-1 rounded text-[10px] font-mono bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors"
+            title={isInspectorCollapsed ? 'Show Inspector Panel' : 'Distraction-Free Canvas Mode'}
+          >
+            <span>{isInspectorCollapsed ? '◀ SHOW INSPECTOR' : 'FULL CANVAS ▶'}</span>
+          </button>
+        </div>
+
         <CanvasViewport
           project={project}
           customPresets={customPresets}
@@ -591,18 +693,129 @@ export const Editor: React.FC<EditorProps> = ({
           setIsAiProcessing={setIsAiProcessing}
           showToast={showToast}
         />
+
+        {/* Live Collaborative Canvas Pinned Comments & Markup */}
+        <CanvasCommentsOverlay
+          projectId={project.id}
+          currentUser={currentUser}
+          isCommentModeActive={isCommentModeActive}
+          onToggleCommentMode={onToggleCommentMode}
+          showToast={showToast}
+        />
+
+        {/* Workstation Canvas Bottom Status Bar */}
+        <div className="h-7 px-3 bg-zinc-950 border-t border-zinc-850 flex items-center justify-between text-[10px] font-mono text-zinc-400 select-none">
+          <div className="flex items-center gap-3">
+            <span className="text-zinc-200 font-semibold truncate max-w-[200px]">
+              {project.name}
+            </span>
+            <span className="hidden sm:inline text-zinc-600">|</span>
+            <span className="hidden sm:inline">
+              {project.image.width} × {project.image.height} px
+            </span>
+            <span className="hidden md:inline text-zinc-600">|</span>
+            <span className="hidden md:inline text-zinc-400">
+              ProPhoto RGB • 32-bit Float
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="hidden lg:inline text-zinc-400">
+              ● WebGL2 / 4 Workers
+            </span>
+            <span className="hidden sm:inline text-zinc-600">|</span>
+            <span className="text-zinc-300">
+              ● Zero Data Loss
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* Right Side Tools & Adjustments Studio Sidebar */}
-      <aside className="w-full lg:w-84 xl:w-96 bg-slate-950/95 border-t lg:border-t-0 lg:border-l border-slate-800/80 flex flex-col shrink-0 h-80 lg:h-full z-10 shadow-2xl">
-        {/* Real-time RGB Histogram & Camera EXIF Bar */}
-        <HistogramView metadata={project.image.rawMetadata} />
+      {/* Right Side Tools & Adjustments Studio Sidebar (Collapsible) */}
+      {!isInspectorCollapsed && (
+        <aside className="w-full lg:w-84 xl:w-96 bg-zinc-950 border-t lg:border-t-0 lg:border-l border-zinc-800 flex flex-col shrink-0 h-80 lg:h-full z-10 shadow-2xl">
+          {/* Real-time RGB Histogram & Camera EXIF Bar */}
+          <HistogramView metadata={project.image.rawMetadata} />
 
-        {/* Studio Tool Switcher Navigation Tabs */}
-        <ToolTabs activeTab={activeToolTab} onSelectTab={setActiveToolTab} />
+          {/* Studio Tool Switcher Navigation Tabs */}
+          <ToolTabs
+            activeTab={activeToolTab}
+            onSelectTab={setActiveToolTab}
+            activeStage={activeStage}
+            skillMode={skillMode}
+          />
 
-        {/* Tool Active Panel Content Area */}
-        <div className="flex-1 overflow-y-auto">
+          {/* Tool Active Panel Content Area */}
+          <div className="flex-1 overflow-y-auto bg-zinc-950">
+          {activeToolTab === 'performance' && (
+            <PerformancePanel
+              project={project}
+              onOpenPerformanceModal={onOpenPerformanceModal}
+              showToast={showToast}
+            />
+          )}
+
+          {activeToolTab === 'security' && (
+            <SecurityPrivacyPanel
+              project={project}
+              onOpenSecurityModal={onOpenSecurityGovernance}
+              showToast={showToast}
+            />
+          )}
+
+          {activeToolTab === 'developer' && (
+            <DeveloperPanel
+              project={project}
+              onOpenDeveloperPlatform={onOpenDeveloperPlatform}
+              showToast={showToast}
+            />
+          )}
+
+          {activeToolTab === 'automation' && (
+            <AutomationPanel
+              project={project}
+              customPresets={customPresets}
+              onOpenAutomationStudio={onOpenAutomationStudio}
+              onApplyResultToProject={(canvas, name) => {
+                handleUpdateImageUrl(canvas.toDataURL('image/png'));
+                showToast('success', 'Automation Applied', name);
+              }}
+              showToast={showToast}
+            />
+          )}
+
+          {activeToolTab === 'plugins' && (
+            <PluginsPanel
+              project={project}
+              currentUser={currentUser}
+              onOpenPluginModal={onOpenPluginModal}
+              onOpenUnsplashModal={onOpenUnsplashModal}
+              onApplyProjectSettings={(newSettings) => {
+                onUpdateProject({
+                  ...project,
+                  currentSettings: {
+                    ...project.currentSettings,
+                    ...newSettings,
+                  },
+                });
+              }}
+              showToast={showToast}
+            />
+          )}
+
+          {activeToolTab === 'collaboration' && (
+            <CollaborationPanel
+              project={project}
+              currentUser={currentUser}
+              onOpenCollaborationModal={onOpenCollaborationModal}
+              onOpenVersionComparison={onOpenVersionComparison}
+              onOpenClientReview={onOpenClientReview}
+              isCommentModeActive={isCommentModeActive}
+              onToggleCommentMode={onToggleCommentMode}
+              showToast={showToast}
+            />
+          )}
+
           {activeToolTab === 'comparison' && (
             <ComparisonPanel
               project={project}
@@ -648,6 +861,28 @@ export const Editor: React.FC<EditorProps> = ({
               imageWidth={project.image.width}
               imageHeight={project.image.height}
               onChangeCrop={handleUpdateCrop}
+              isAiProcessing={isAiProcessing}
+              setIsAiProcessing={setIsAiProcessing}
+              showToast={showToast}
+            />
+          )}
+
+          {activeToolTab === 'nl-edit' && (
+            <NaturalLanguageEditingPanel
+              project={project}
+              onUpdateProject={onUpdateProject}
+              onPushHistory={pushHistoryStep}
+              onSelectTab={setActiveToolTab}
+              showToast={showToast}
+            />
+          )}
+
+          {activeToolTab === 'ai-native' && (
+            <AINativeArchitecturePanel
+              project={project}
+              onUpdateSettings={handleUpdateAdjustments}
+              onUpdateCrop={handleUpdateCrop}
+              onUpdateImage={handleUpdateImageUrl}
               isAiProcessing={isAiProcessing}
               setIsAiProcessing={setIsAiProcessing}
               showToast={showToast}
@@ -919,6 +1154,14 @@ export const Editor: React.FC<EditorProps> = ({
             />
           )}
 
+          {activeToolTab === 'screenshot' && (
+            <ScreenshotStudioPanel
+              project={project}
+              onUpdateImage={handleUpdateImageUrl}
+              showToast={showToast}
+            />
+          )}
+
           {activeToolTab === 'layers' && (
             <LayersPanel
               layers={project.layers || []}
@@ -959,6 +1202,7 @@ export const Editor: React.FC<EditorProps> = ({
           )}
         </div>
       </aside>
+      )}
     </div>
   );
 };

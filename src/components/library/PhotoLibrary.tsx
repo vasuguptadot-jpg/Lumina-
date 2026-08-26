@@ -42,6 +42,7 @@ import {
   DownloadCloud,
   ArrowLeft,
   Copy,
+  Share2,
 } from 'lucide-react';
 import {
   PhotoItem,
@@ -79,10 +80,12 @@ import { PlacesView } from './PlacesView';
 import { EventsView } from './EventsView';
 import { DuplicateDetectionView } from './DuplicateDetectionView';
 import { SmartAlbumModal } from './SmartAlbumModal';
+import { SocialMediaExportModal } from '../social/SocialMediaExportModal';
 
 interface PhotoLibraryProps {
   onOpenInEditor: (project: Project) => void;
   onOpenInBatchStudio?: (photos: PhotoItem[]) => void;
+  onOpenCameraStudio?: () => void;
   showToast: (type: 'success' | 'error' | 'info', title: string, message?: string) => void;
 }
 
@@ -98,6 +101,7 @@ const SAMPLE_SEARCH_SUGGESTIONS = [
 export const PhotoLibrary: React.FC<PhotoLibraryProps> = ({
   onOpenInEditor,
   onOpenInBatchStudio,
+  onOpenCameraStudio,
   showToast,
 }) => {
   // State
@@ -107,6 +111,7 @@ export const PhotoLibrary: React.FC<PhotoLibraryProps> = ({
   const [places, setPlaces] = useState<PlaceLocation[]>([]);
   const [events, setEvents] = useState<PhotoEvent[]>([]);
   const [duplicateClusters, setDuplicateClusters] = useState<DuplicateCluster[]>([]);
+  const [socialExportPhoto, setSocialExportPhoto] = useState<PhotoItem | null>(null);
 
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
@@ -554,6 +559,17 @@ export const PhotoLibrary: React.FC<PhotoLibraryProps> = ({
 
             {/* Quick Actions */}
             <div className="flex items-center gap-2">
+              {onOpenCameraStudio && (
+                <button
+                  onClick={onOpenCameraStudio}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-xs font-bold text-slate-950 shadow-md shadow-amber-500/20 transition-all active:scale-95"
+                  title="Open Pro Camera Studio (RAW Capture, Manual ISO, Shutter, Focus Peaking)"
+                >
+                  <Camera className="w-3.5 h-3.5 text-slate-950" />
+                  <span>Pro Camera</span>
+                </button>
+              )}
+
               <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700/80 cursor-pointer transition-colors shadow-sm">
                 <Upload className="w-3.5 h-3.5 text-indigo-400" />
                 <span>Import Photos</span>
@@ -1505,13 +1521,23 @@ export const PhotoLibrary: React.FC<PhotoLibraryProps> = ({
               </div>
 
               {/* Primary Action Button */}
-              <button
-                onClick={() => handleOpenPhotoInEditor(selectedPhoto)}
-                className="w-full py-2 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all"
-              >
-                <Edit3 className="w-4 h-4" />
-                <span>Open in Studio Editor</span>
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => handleOpenPhotoInEditor(selectedPhoto)}
+                  className="w-full py-2 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-xs font-bold text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  <span>Open in Studio Editor</span>
+                </button>
+
+                <button
+                  onClick={() => setSocialExportPhoto(selectedPhoto)}
+                  className="w-full py-2 px-4 rounded-xl bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-xs font-bold text-white shadow-md shadow-pink-600/20 flex items-center justify-center gap-2 transition-all"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Optimize for Social (IG, TikTok, YT)</span>
+                </button>
+              </div>
 
               {/* People Tagged in Photo */}
               {selectedPhoto.peopleIds && selectedPhoto.peopleIds.length > 0 && (
@@ -1791,6 +1817,14 @@ export const PhotoLibrary: React.FC<PhotoLibraryProps> = ({
         isOpen={isSmartAlbumModalOpen}
         onClose={() => setIsSmartAlbumModalOpen(false)}
         onCreateSmartAlbum={handleCreateSmartAlbum}
+      />
+
+      {/* SOCIAL MEDIA OPTIMIZER & MULTI-FORMAT EXPORT MODAL */}
+      <SocialMediaExportModal
+        isOpen={Boolean(socialExportPhoto)}
+        onClose={() => setSocialExportPhoto(null)}
+        photo={socialExportPhoto}
+        showToast={showToast}
       />
     </div>
   );

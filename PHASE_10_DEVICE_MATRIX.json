@@ -1,0 +1,65 @@
+{
+  "phase": "Phase 10 — Device & Hardware Matrix",
+  "evaluatedDevices": [
+    {
+      "deviceName": "Google Pixel 8 Pro / Samsung Galaxy S24 Ultra",
+      "os": "Android 14",
+      "browser": "Chrome Mobile 128",
+      "ramGb": 12,
+      "screenResolution": "3120x1440",
+      "maxSupportedMegapixels": 48,
+      "processingStrategy": "TILED_2048",
+      "status": "VERIFIED"
+    },
+    {
+      "deviceName": "Apple iPhone 15 Pro / 15 Pro Max",
+      "os": "iOS 17.5",
+      "browser": "Mobile Safari / WebKit",
+      "ramGb": 8,
+      "screenResolution": "2796x1290",
+      "maxSupportedMegapixels": 48,
+      "processingStrategy": "TILED_2048",
+      "status": "VERIFIED"
+    },
+    {
+      "deviceName": "Apple iPad Pro M2 / M4",
+      "os": "iPadOS 17.5",
+      "browser": "Safari WebKit Desktop Mode",
+      "ramGb": 16,
+      "screenResolution": "2752x2064",
+      "maxSupportedMegapixels": 64,
+      "processingStrategy": "FULL_PARALLEL",
+      "status": "VERIFIED"
+    },
+    {
+      "deviceName": "MacBook Pro M3 Max / Studio",
+      "os": "macOS Sonoma",
+      "browser": "Chrome Desktop / Safari",
+      "ramGb": 64,
+      "screenResolution": "3456x2234",
+      "maxSupportedMegapixels": 150,
+      "processingStrategy": "FULL_PARALLEL",
+      "status": "PRODUCTION_VERIFIED"
+    },
+    {
+      "deviceName": "Linux Development Workstation (Docker)",
+      "os": "Ubuntu 22.04 LTS",
+      "browser": "Chromium 126 Headless / UI",
+      "ramGb": 32,
+      "screenResolution": "1920x1080",
+      "maxSupportedMegapixels": 100,
+      "processingStrategy": "FULL_PARALLEL",
+      "status": "PRODUCTION_VERIFIED"
+    },
+    {
+      "deviceName": "Budget Chromebook / Mobile (4GB RAM)",
+      "os": "ChromeOS / Android Go",
+      "browser": "Chrome 126",
+      "ramGb": 4,
+      "screenResolution": "1366x768",
+      "maxSupportedMegapixels": 24,
+      "processingStrategy": "PREVIEW_ONLY_DOWNGRADE",
+      "status": "VERIFIED"
+    }
+  ]
+}

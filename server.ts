@@ -3,6 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { handleGeminiApi } from './server/aiHandler.ts';
+import { handleDeveloperApi } from './server/devApiHandler.ts';
+import { handleGroqApi } from './server/groqHandler.ts';
 
 dotenv.config();
 
@@ -16,7 +18,21 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Server-side AI Endpoints
+// Developer & Enterprise API v1 Endpoints
+app.all('/api/v1/*', async (req, res) => {
+  try {
+    const result = await handleDeveloperApi(req.path, req.method, req.headers, req.body);
+    res.json(result);
+  } catch (error: any) {
+    console.error(`Dev API Error (${req.path}):`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Internal Developer API Server Error',
+    });
+  }
+});
+
+// Server-side AI Endpoints (Gemini Native)
 app.post('/api/ai/:action', async (req, res) => {
   try {
     const { action } = req.params;
@@ -27,6 +43,21 @@ app.post('/api/ai/:action', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Internal AI Server Error',
+    });
+  }
+});
+
+// Server-side Groq BYOK & Proxy Endpoints
+app.post('/api/groq/:action', async (req, res) => {
+  try {
+    const { action } = req.params;
+    const result = await handleGroqApi(action, req.body, req.headers);
+    res.json(result);
+  } catch (error: any) {
+    console.error(`Groq API Error (${req.params.action}):`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Internal Groq Server Error',
     });
   }
 });

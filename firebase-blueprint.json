@@ -1,0 +1,158 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User account and workspace profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "lastActive": { "type": "number" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Project": {
+      "title": "Project Document",
+      "description": "Photo editing project document with collaborative state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "ownerEmail": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "revision": { "type": "number" },
+        "isPublic": { "type": "boolean" },
+        "approvalStatus": { "type": "string" },
+        "approvalNotes": { "type": "string" },
+        "approvedBy": { "type": "string" },
+        "approvedAt": { "type": "number" },
+        "collaborators": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["id", "ownerId", "name"]
+    },
+    "Collaborator": {
+      "title": "Project Collaborator",
+      "description": "Invited collaborator with specific access role",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string" },
+        "invitedAt": { "type": "number" },
+        "acceptedAt": { "type": "number" }
+      },
+      "required": ["id", "projectId", "email", "role", "status"]
+    },
+    "Comment": {
+      "title": "Canvas Comment & Annotation",
+      "description": "Threaded comment pinned to coordinates on image canvas",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorEmail": { "type": "string" },
+        "authorAvatar": { "type": "string" },
+        "content": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "annotationType": { "type": "string" },
+        "annotationColor": { "type": "string" },
+        "annotationPath": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "resolved": { "type": "boolean" },
+        "resolvedBy": { "type": "string" },
+        "resolvedAt": { "type": "number" },
+        "repliesCount": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "projectId", "authorId", "authorName", "content", "createdAt"]
+    },
+    "CommentReply": {
+      "title": "Comment Thread Reply",
+      "description": "Reply in a comment thread",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "commentId": { "type": "string" },
+        "projectId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatar": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "commentId", "authorId", "authorName", "content", "createdAt"]
+    },
+    "ApprovalRecord": {
+      "title": "Approval Audit Log",
+      "description": "Audit trail record for review workflow",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "status": { "type": "string" },
+        "actorId": { "type": "string" },
+        "actorName": { "type": "string" },
+        "actorRole": { "type": "string" },
+        "signature": { "type": "string" },
+        "feedback": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "versionNumber": { "type": "number" }
+      },
+      "required": ["id", "projectId", "status", "actorId", "actorName", "timestamp"]
+    },
+    "PluginExtension": {
+      "title": "Lumina Plugin Extension",
+      "description": "Custom extension or plugin in the ecosystem",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "version": { "type": "string" },
+        "author": { "type": "string" },
+        "authorId": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "isPublic": { "type": "boolean" },
+        "downloadsCount": { "type": "number" },
+        "rating": { "type": "number" },
+        "code": { "type": "string" },
+        "parameters": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "name", "category", "author", "createdAt"]
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

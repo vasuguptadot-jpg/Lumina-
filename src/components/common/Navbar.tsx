@@ -16,6 +16,17 @@ import {
   Wand2,
   Laptop,
   Compass,
+  Share2,
+  Camera,
+  Users,
+  Eye,
+  MessageSquare,
+  Shield,
+  ShieldCheck,
+  Lock,
+  Package,
+  Zap,
+  Code2,
 } from 'lucide-react';
 import { Project } from '../../types/editor';
 
@@ -29,11 +40,22 @@ interface NavbarProps {
   onRedo: () => void;
   onReset: () => void;
   onOpenExport: () => void;
+  onOpenSocialExport?: () => void;
   onOpenCloudModal: () => void;
   onOpenShortcuts: () => void;
   onAutoEnhance: () => void;
   isAutoEnhancing: boolean;
   onProjectNameChange?: (name: string) => void;
+  onOpenCameraStudio?: () => void;
+  onOpenCollaboration?: () => void;
+  onOpenClientReview?: () => void;
+  onOpenPlugins?: () => void;
+  onOpenAutomation?: () => void;
+  onOpenDeveloperPlatform?: () => void;
+  onOpenSecurityGovernance?: () => void;
+  onLockVault?: () => void;
+  onOpenPerformanceMonitor?: () => void;
+  onOpenGroqSettings?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -46,11 +68,22 @@ export const Navbar: React.FC<NavbarProps> = ({
   onRedo,
   onReset,
   onOpenExport,
+  onOpenSocialExport,
   onOpenCloudModal,
   onOpenShortcuts,
   onAutoEnhance,
   isAutoEnhancing,
   onProjectNameChange,
+  onOpenCameraStudio,
+  onOpenCollaboration,
+  onOpenClientReview,
+  onOpenPlugins,
+  onOpenAutomation,
+  onOpenDeveloperPlatform,
+  onOpenSecurityGovernance,
+  onLockVault,
+  onOpenPerformanceMonitor,
+  onOpenGroqSettings,
 }) => {
   return (
     <header className="h-14 bg-slate-950/90 border-b border-slate-800/80 px-4 flex items-center justify-between backdrop-blur-md z-30 select-none">
@@ -229,6 +262,128 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Keyboard className="w-4 h-4" />
             </button>
+
+            {/* Groq AI & BYOK Management Button */}
+            {onOpenGroqSettings && (
+              <button
+                onClick={onOpenGroqSettings}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 border border-orange-500/40 hover:border-orange-400 text-orange-300 shadow-md shadow-orange-950/40 transition-all active:scale-95"
+                title="Groq AI Integration (BYOK Key Management, LPU Inference, Model Selection, Token Monitor & Security Policies)"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                <span className="hidden sm:inline">Groq AI</span>
+              </button>
+            )}
+
+            {/* GPU Performance Engine Button */}
+            {onOpenPerformanceMonitor && (
+              <button
+                onClick={onOpenPerformanceMonitor}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-950/80 border border-amber-500/40 hover:border-amber-400 text-amber-300 shadow-md shadow-amber-950/40 transition-all active:scale-95"
+                title="Hardware Acceleration & Compute Engine (GPU WebGL/WebGPU, Multithreading, Tile Frustum Culling, Proxy Previews, Memory Cache)"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">GPU 60fps</span>
+              </button>
+            )}
+
+            {/* Security & Privacy Hub Button */}
+            {onOpenSecurityGovernance && (
+              <button
+                onClick={onOpenSecurityGovernance}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-950/80 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 shadow-md shadow-emerald-950/40 transition-all active:scale-95"
+                title="Security & Privacy Governance (Local Compute, E2EE Vault, EXIF Sanitizer, Face Protection, AI Consent)"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">Security</span>
+              </button>
+            )}
+
+            {/* Lock Vault Button */}
+            {onLockVault && (
+              <button
+                onClick={onLockVault}
+                className="p-2 rounded-lg text-slate-400 hover:text-amber-300 hover:bg-slate-900 transition-colors"
+                title="Lock Studio Vault"
+              >
+                <Lock className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Team & Collaboration Button */}
+            {onOpenCollaboration && (
+              <button
+                onClick={onOpenCollaboration}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-950/80 border border-indigo-500/40 hover:border-indigo-400 hover:bg-indigo-900/80 text-indigo-300 shadow-md shadow-indigo-950/40 transition-all active:scale-95"
+                title="Manage Collaborators, Comments, Approvals, & Shared Links"
+              >
+                <Users className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="hidden sm:inline">Collaborate</span>
+                {((project as any)?.approvalStatus && (project as any).approvalStatus !== 'draft') && (
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                )}
+              </button>
+            )}
+
+            {/* Developer Hub & API Platform Button */}
+            {onOpenDeveloperPlatform && (
+              <button
+                onClick={onOpenDeveloperPlatform}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-cyan-900/80 to-blue-900/80 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 shadow-md shadow-cyan-950/40 transition-all active:scale-95"
+                title="Open Developer Platform (Headless API, TypeScript & Python SDKs, Custom AI Models, Webhooks, Cloud Render)"
+              >
+                <Code2 className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden sm:inline">Developer API</span>
+              </button>
+            )}
+
+            {/* Automation & 8-Stage Workflow Engine Button */}
+            {onOpenAutomation && (
+              <button
+                onClick={onOpenAutomation}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-indigo-500/20 border border-amber-500/40 hover:border-amber-400 text-amber-300 shadow-md shadow-amber-950/40 transition-all active:scale-95"
+                title="Open Automation Workflow Engine (Import → AI analysis → Color correction → Noise reduction → Preset → Watermark → Resize → Export)"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Automation</span>
+              </button>
+            )}
+
+            {/* Plugin Platform & Marketplace Hub Button */}
+            {onOpenPlugins && (
+              <button
+                onClick={onOpenPlugins}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-purple-900/80 to-indigo-900/80 border border-purple-500/40 hover:border-purple-400 text-purple-300 shadow-md shadow-purple-950/40 transition-all active:scale-95"
+                title="Plugin & Extension Studio (Custom Shaders, 3D LUTs, AI Models, Brushes, Fonts, Templates & Scripts)"
+              >
+                <Package className="w-3.5 h-3.5 text-purple-400" />
+                <span className="hidden sm:inline">Plugins</span>
+              </button>
+            )}
+
+            {/* Pro Camera Studio Button */}
+            {onOpenCameraStudio && (
+              <button
+                onClick={onOpenCameraStudio}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 shadow-md shadow-amber-500/20 transition-all active:scale-95"
+                title="Open Pro Camera Studio (RAW Capture, Manual ISO, Shutter, Focus Peaking, HDR)"
+              >
+                <Camera className="w-3.5 h-3.5 text-slate-950" />
+                <span className="hidden sm:inline">Camera</span>
+              </button>
+            )}
+
+            {/* Social Media Optimizer Button */}
+            {onOpenSocialExport && (
+              <button
+                onClick={onOpenSocialExport}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white shadow-md shadow-pink-600/20 transition-all active:scale-95"
+                title="1-Click Social Media Optimizer (Instagram, YouTube, TikTok, X, Facebook, LinkedIn)"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Social Export</span>
+              </button>
+            )}
 
             {/* Export High-Res Button */}
             <button

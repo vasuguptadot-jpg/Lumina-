@@ -10,6 +10,8 @@ export const ShortcutModal: React.FC<ShortcutModalProps> = ({ isOpen, onClose })
   if (!isOpen) return null;
 
   const shortcuts = [
+    { key: '1 - 9', desc: 'Jump to Workflow Stage (Library → Develop → Select → Mask → Retouch → Layers → AI → Design → Export)' },
+    { key: '[ / ]', desc: 'Cycle Previous / Next Workflow Stage' },
     { key: 'Ctrl + Z', desc: 'Undo last edit or stroke' },
     { key: 'Ctrl + Y / Shift+Z', desc: 'Redo last edit' },
     { key: '\\ (Backslash)', desc: 'Hold to peek original photo' },
@@ -19,7 +21,6 @@ export const ShortcutModal: React.FC<ShortcutModalProps> = ({ isOpen, onClose })
     { key: 'F', desc: 'Fit image to screen' },
     { key: 'B', desc: 'Draw & Paint Studio' },
     { key: 'I', desc: 'Eyedropper Color Picker' },
-    { key: '[ / ]', desc: 'Decrease / Increase Brush Size' },
     { key: 'T', desc: 'Text & Typography Tool' },
     { key: 'G', desc: 'Graphics & Design Elements' },
     { key: 'K', desc: 'Collage Studio' },

@@ -1,1 +1,99 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-app: #09090b;
+    --bg-surface: #18181b;
+    --bg-surface-elevated: #27272a;
+    --border-subtle: #27272a;
+    --border-strong: #3f3f46;
+    --text-primary: #fafafa;
+    --text-secondary: #d4d4d8;
+    --text-muted: #a1a1aa;
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: #09090b;
+    color: #fafafa;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    user-select: none;
+    overflow: hidden;
+  }
+
+  /* Custom Professional Workstation Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #09090b;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+  }
+
+  /* Standard Monochrome Sliders */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #27272a;
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fafafa;
+    border: 2px solid #18181b;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    transition: transform 0.1s ease, background 0.1s ease;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    background: #ffffff;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.25);
+    background: #e4e4e7;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fafafa;
+    border: 2px solid #18181b;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Accessibility high-contrast focus outlines */
+:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Technical Monospace Values */
+.font-technical {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}

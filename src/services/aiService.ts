@@ -1,3 +1,7 @@
+import { calculateAutoTone } from '../engine/autoToneEngine';
+import { inpaintImageLocally } from '../engine/inpainting';
+import { isStrictlyLocal } from './aiProviderEngine';
+
 export interface AiEnhanceResponse {
   success: boolean;
   data?: {
@@ -19,9 +23,45 @@ export interface AiEnhanceResponse {
     analysis?: string;
   };
   error?: string;
+  isLocalFallback?: boolean;
 }
 
 export async function requestAiAutoEnhance(imageBase64: string): Promise<AiEnhanceResponse> {
+  // If local mode is active, directly compute deterministic histogram tone adjustments
+  if (isStrictlyLocal()) {
+    try {
+      const img = new Image();
+      img.src = imageBase64;
+      await new Promise((resolve) => {
+        img.onload = resolve;
+        img.onerror = resolve;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || 600;
+      canvas.height = img.naturalHeight || 400;
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const localAdjustments = calculateAutoTone(canvas);
+
+      return {
+        success: true,
+        data: {
+          brightness: 0,
+          temperature: 0,
+          tint: 0,
+          saturation: 0,
+          sharpness: 0,
+          ...localAdjustments,
+          vignette: 0,
+          analysis: 'Computed instantly via Local Deterministic Histogram Engine (0ms Cloud Latency)',
+        } as any,
+        isLocalFallback: true,
+      };
+    } catch (err: any) {
+      console.warn('Local tone calculation error:', err);
+    }
+  }
+
   try {
     const response = await fetch('/api/ai/auto-enhance', {
       method: 'POST',
@@ -30,12 +70,46 @@ export async function requestAiAutoEnhance(imageBase64: string): Promise<AiEnhan
     });
 
     const json = await response.json();
-    return json;
+    if (json && json.success) {
+      return json;
+    }
+    throw new Error(json?.error || 'AI server failed');
   } catch (err: any) {
-    return {
-      success: false,
-      error: err.message || 'Network or server error during AI enhancement.',
-    };
+    console.warn('[AI Service] Cloud auto-enhance unavailable. Executing Local Deterministic Auto-Tone.', err);
+    try {
+      const img = new Image();
+      img.src = imageBase64;
+      await new Promise((resolve) => {
+        img.onload = resolve;
+        img.onerror = resolve;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || 600;
+      canvas.height = img.naturalHeight || 400;
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const localAdjustments = calculateAutoTone(canvas);
+
+      return {
+        success: true,
+        data: {
+          brightness: 0,
+          temperature: 0,
+          tint: 0,
+          saturation: 0,
+          sharpness: 0,
+          ...localAdjustments,
+          vignette: 0,
+          analysis: 'Cloud AI was unavailable. Applied Local Deterministic Histogram Auto-Tone.',
+        } as any,
+        isLocalFallback: true,
+      };
+    } catch (fallbackErr: any) {
+      return {
+        success: false,
+        error: fallbackErr.message || 'Auto-enhance failed.',
+      };
+    }
   }
 }
 
@@ -49,7 +123,25 @@ export async function requestAiObjectRemoval(
   imageBase64: string,
   maskBase64: string,
   optionsOrPrompt?: string | ObjectRemovalOptions
-): Promise<{ success: boolean; imageUrl?: string; error?: string; message?: string }> {
+): Promise<{ success: boolean; imageUrl?: string; error?: string; message?: string; isLocalFallback?: boolean }> {
+  // If local offline mode, run local Telea/Navier-Stokes inpainting
+  if (isStrictlyLocal()) {
+    try {
+      const resultDataUrl = await inpaintImageLocally(imageBase64, maskBase64, 6);
+      return {
+        success: true,
+        imageUrl: resultDataUrl,
+        message: 'Reconstructed seamlessly via Local Deterministic Telea Inpainting (0 Cloud Uploads)',
+        isLocalFallback: true,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.message || 'Local inpainting failed',
+      };
+    }
+  }
+
   try {
     let payload: any = { imageBase64, maskBase64 };
     if (typeof optionsOrPrompt === 'string') {
@@ -65,12 +157,26 @@ export async function requestAiObjectRemoval(
     });
 
     const json = await response.json();
-    return json;
+    if (json && json.success) {
+      return json;
+    }
+    throw new Error(json?.error || 'AI server failed');
   } catch (err: any) {
-    return {
-      success: false,
-      error: err.message || 'Failed to connect to AI object removal service.',
-    };
+    console.warn('[AI Service] Cloud removal unavailable. Executing Local Fast Telea Inpainting.', err);
+    try {
+      const resultDataUrl = await inpaintImageLocally(imageBase64, maskBase64, 6);
+      return {
+        success: true,
+        imageUrl: resultDataUrl,
+        message: 'Cloud AI unavailable. Reconstructed using Local Deterministic Telea Inpainting.',
+        isLocalFallback: true,
+      };
+    } catch (fallbackErr: any) {
+      return {
+        success: false,
+        error: fallbackErr.message || 'Failed to remove object.',
+      };
+    }
   }
 }
 
@@ -1001,6 +1107,55 @@ export async function requestAiCompositionAssistant(
     return {
       success: false,
       error: err.message || 'Failed to run AI Composition Assistant.',
+    };
+  }
+}
+
+// ----------------------------------------------------------------------------
+// AI-NATIVE EDITING ARCHITECTURE CALLS
+// ----------------------------------------------------------------------------
+export async function requestAiNativeDecompose(
+  imageBase64: string
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const response = await fetch('/api/ai/ai-native-decompose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64 }),
+    });
+
+    const json = await response.json();
+    return json;
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || 'Failed to execute AI Native Scene Decomposition.',
+    };
+  }
+}
+
+export async function requestAiNativeDirectorExecute(
+  imageBase64: string,
+  userPrompt: string,
+  currentDecomposition?: any
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const response = await fetch('/api/ai/ai-native-director-execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64,
+        userPrompt,
+        currentDecomposition,
+      }),
+    });
+
+    const json = await response.json();
+    return json;
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || 'Failed to execute AI Director instructions.',
     };
   }
 }

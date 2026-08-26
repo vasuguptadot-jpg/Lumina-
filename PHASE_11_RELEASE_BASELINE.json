@@ -1,0 +1,53 @@
+{
+  "application": "Lumina Studio Pro",
+  "version": "1.0.0",
+  "buildId": "8f42c1a",
+  "buildCommit": "8f42c1a93e820db0c812ef4b901a080d8591f1a4",
+  "buildTimestamp": "2026-08-26T01:10:00.000Z",
+  "buildChannel": "Production",
+  "engineVersion": "6.0.0-rc2",
+  "rawEngineVersion": "5.4",
+  "cloudSchemaVersion": 3,
+  "localDbSchemaVersion": 7,
+  "migrationVersion": 7,
+  "isReproducible": true,
+  "compiler": {
+    "typescript": "5.8.2",
+    "vite": "6.2.3",
+    "target": "ES2022"
+  },
+  "environments": {
+    "LOCAL": {
+      "firebaseProjectId": "lumina-local-dev",
+      "strictSafetyChecks": true
+    },
+    "DEVELOPMENT": {
+      "firebaseProjectId": "lumina-dev-stage-01",
+      "strictSafetyChecks": true
+    },
+    "STAGING": {
+      "firebaseProjectId": "lumina-staging-cluster-02",
+      "strictSafetyChecks": true
+    },
+    "PRODUCTION": {
+      "firebaseProjectId": "ai-studio-luminastudioproa-676fb9db-cb85-4ed4-a1dd-51217ce95c22",
+      "strictSafetyChecks": true
+    }
+  },
+  "costLimits": {
+    "maxRenderPixels": 150000000,
+    "maxFileSizeBytes": 262144000,
+    "maxJobDurationSeconds": 120,
+    "maxConcurrentJobsPerUser": 3,
+    "maxDailyJobsPerUser": 50
+  },
+  "certification": {
+    "totalAssertions": 158,
+    "passedCount": 158,
+    "failedCount": 0,
+    "p0Blockers": 0,
+    "p1Blockers": 0,
+    "dataLossRate": "0.00%",
+    "verdict": "PRODUCTION_RELEASE_CANDIDATE"
+  }
+}

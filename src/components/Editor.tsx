@@ -81,6 +81,7 @@ import { DeveloperPanel } from './editor/panels/DeveloperPanel';
 import { SecurityPrivacyPanel } from './editor/panels/SecurityPrivacyPanel';
 import { PerformancePanel } from './editor/panels/PerformancePanel';
 import { CanvasCommentsOverlay } from './collaboration/CanvasCommentsOverlay';
+import { DesktopStatusBar } from './navigation/DesktopStatusBar';
 import { User } from 'firebase/auth';
 import { WorkflowStageId } from '../types/workflow';
 
@@ -704,31 +705,13 @@ export const Editor: React.FC<EditorProps> = ({
         />
 
         {/* Workstation Canvas Bottom Status Bar */}
-        <div className="h-7 px-3 bg-zinc-950 border-t border-zinc-850 flex items-center justify-between text-[10px] font-mono text-zinc-400 select-none">
-          <div className="flex items-center gap-3">
-            <span className="text-zinc-200 font-semibold truncate max-w-[200px]">
-              {project.name}
-            </span>
-            <span className="hidden sm:inline text-zinc-600">|</span>
-            <span className="hidden sm:inline">
-              {project.image.width} × {project.image.height} px
-            </span>
-            <span className="hidden md:inline text-zinc-600">|</span>
-            <span className="hidden md:inline text-zinc-400">
-              ProPhoto RGB • 32-bit Float
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="hidden lg:inline text-zinc-400">
-              ● WebGL2 / 4 Workers
-            </span>
-            <span className="hidden sm:inline text-zinc-600">|</span>
-            <span className="text-zinc-300">
-              ● Zero Data Loss
-            </span>
-          </div>
-        </div>
+        <DesktopStatusBar
+          project={project}
+          activeTab={activeToolTab}
+          isBeforeAfterActive={isShowingBeforeToggle}
+          onToggleBeforeAfter={() => setIsShowingBeforeToggle((prev) => !prev)}
+          onOpenDiagnostics={onOpenPerformanceModal}
+        />
       </div>
 
       {/* Right Side Tools & Adjustments Studio Sidebar (Collapsible) */}

@@ -18,6 +18,10 @@ import { AssetsLibraryView } from './components/assets/AssetsLibraryView';
 import { ExportWorkspaceView } from './components/export/ExportWorkspaceView';
 import { CloudWorkspaceView } from './components/cloud/CloudWorkspaceView';
 import { SystemWorkspaceView } from './components/system/SystemWorkspaceView';
+import { UniversalSettingsView } from './components/settings/UniversalSettingsView';
+import { DesktopMenuBar } from './components/navigation/DesktopMenuBar';
+import { useAdaptiveLayout } from './services/adaptiveLayout';
+import { inputManager } from './services/inputManager';
 import { GlobalCommandPalette } from './components/search/GlobalCommandPalette';
 import { FeatureExplorerModal } from './components/discovery/FeatureExplorerModal';
 import { AICreativeDirectorModal } from './components/ai/AICreativeDirectorModal';
@@ -115,6 +119,8 @@ export function App() {
     'tool_skin_smoothing',
   ]);
   const [requestedEditorTool, setRequestedEditorTool] = useState<string | undefined>(undefined);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const layoutState = useAdaptiveLayout();
 
   // Modals & Popups State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -352,61 +358,6 @@ export function App() {
     activeTab,
   ]);
 
-  // Global Keyboard Shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') {
-        return;
-      }
-
-      // Save Project: Ctrl+S or Cmd+S
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        autosaveEngine.saveNow().then(() => {
-          showToast('success', 'Project Saved', `Saved "${project.name}" safely to IndexedDB.`);
-        });
-      }
-      // Command Palette: Ctrl+K or Cmd+K
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setIsSearchOpen((prev) => !prev);
-      }
-      // Feature Explorer: Shift+T
-      else if (e.shiftKey && e.key.toUpperCase() === 'T' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        setIsFeatureExplorerOpen((prev) => !prev);
-      }
-      // AI Director: Ctrl+Space
-      else if ((e.ctrlKey || e.metaKey) && e.code === 'Space') {
-        e.preventDefault();
-        setIsAICreativeDirectorOpen((prev) => !prev);
-      }
-      // Undo: Ctrl+Z or Cmd+Z
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        handleUndo();
-      }
-      // Redo: Ctrl+Y or Ctrl+Shift+Z
-      else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) {
-        e.preventDefault();
-        handleRedo();
-      }
-      // Export: Ctrl+E
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
-        e.preventDefault();
-        setIsExportModalOpen(true);
-      }
-      // Shortcuts Help: ?
-      else if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
-        e.preventDefault();
-        setIsShortcutsOpen(true);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  });
-
   // Undo / Redo logic
   const canUndo = (project.historyIndex ?? 0) > 0;
   const canRedo =
@@ -414,7 +365,7 @@ export function App() {
     project.historyIndex !== undefined &&
     project.historyIndex < project.history.length - 1;
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     if (!canUndo || !project.history) return;
     const newIdx = project.historyIndex! - 1;
     const snap = project.history[newIdx];
@@ -439,9 +390,9 @@ export function App() {
       updatedAt: Date.now(),
     });
     showToast('info', 'Undo', snap.label || 'Step reverted');
-  };
+  }, [canUndo, project, showToast]);
 
-  const handleRedo = () => {
+  const handleRedo = useCallback(() => {
     if (!canRedo || !project.history) return;
     const newIdx = project.historyIndex! + 1;
     const snap = project.history[newIdx];
@@ -466,7 +417,81 @@ export function App() {
       updatedAt: Date.now(),
     });
     showToast('info', 'Redo', snap.label || 'Step restored');
-  };
+  }, [canRedo, project, showToast]);
+
+  // Universal InputManager Shortcuts Integration
+  useEffect(() => {
+    const unreg = inputManager.registerBatch([
+      {
+        id: 'save_project',
+        name: 'Save Project',
+        category: 'File',
+        defaultMac: 'Cmd+S',
+        defaultWin: 'Ctrl+S',
+        description: 'Save current project snapshot to local IndexedDB',
+        action: () => {
+          autosaveEngine.saveNow().then(() => {
+            showToast('success', 'Project Saved', `Saved "${project.name}" safely to IndexedDB.`);
+          });
+        },
+      },
+      {
+        id: 'export_image',
+        name: 'Export Image',
+        category: 'File',
+        defaultMac: 'Cmd+E',
+        defaultWin: 'Ctrl+E',
+        description: 'Open master export modal',
+        action: () => setIsExportModalOpen(true),
+      },
+      {
+        id: 'undo_edit',
+        name: 'Undo Edit',
+        category: 'Edit',
+        defaultMac: 'Cmd+Z',
+        defaultWin: 'Ctrl+Z',
+        description: 'Revert previous history snapshot',
+        action: handleUndo,
+      },
+      {
+        id: 'redo_edit',
+        name: 'Redo Edit',
+        category: 'Edit',
+        defaultMac: 'Cmd+Shift+Z',
+        defaultWin: 'Ctrl+Shift+Z',
+        description: 'Restore undone history snapshot',
+        action: handleRedo,
+      },
+      {
+        id: 'command_palette',
+        name: 'Command Palette',
+        category: 'View',
+        defaultMac: 'Cmd+K',
+        defaultWin: 'Ctrl+K',
+        description: 'Search tools, presets, and actions',
+        action: () => setIsSearchOpen((prev) => !prev),
+      },
+      {
+        id: 'shortcuts_help',
+        name: 'Shortcuts Guide',
+        category: 'Navigation',
+        defaultMac: '?',
+        defaultWin: '?',
+        description: 'Open shortcuts guide dialog',
+        action: () => setIsShortcutsOpen(true),
+      },
+      {
+        id: 'diagnostics',
+        name: 'Hardware Monitor',
+        category: 'View',
+        defaultMac: 'Cmd+P',
+        defaultWin: 'Ctrl+P',
+        description: 'View GPU and hardware diagnostics',
+        action: () => setIsPerformanceModalOpen(true),
+      },
+    ]);
+    return unreg;
+  }, [project, handleUndo, handleRedo, showToast]);
 
   // Launch tool handler from Search or Feature Explorer
   const handleLaunchTool = (tool: ToolDefinition) => {
@@ -576,55 +601,131 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen bg-[#000000] text-white overflow-hidden font-sans select-none pb-12 lg:pb-0">
-      {/* 1. PERSISTENT DESKTOP PRO SIDEBAR NAVIGATION */}
-      <ProSidebarNav
-        activeTab={activeTab}
-        onSelectTab={(tab) => {
-          if (tab === 'photo') {
+    <div className="flex flex-col h-screen w-screen bg-[#000000] text-white overflow-hidden font-sans select-none pb-12 lg:pb-0">
+      {/* 0. TOP DESKTOP MENU BAR (When on Desktop or Tablet) */}
+      {layoutState.mode !== 'MOBILE' && (
+        <DesktopMenuBar
+          activeTab={activeTab}
+          onSelectTab={(tab) => {
+            if (tab === 'photo') {
+              setActiveTab('editor');
+            } else {
+              setActiveTab(tab);
+            }
+          }}
+          project={project}
+          onNewProject={() => {
+            const sample = SAMPLE_IMAGES[Math.floor(Math.random() * SAMPLE_IMAGES.length)];
+            const imgFile = createSampleImageFile(sample);
+            const newP: Project = {
+              ...DEFAULT_PROJECT_STATE,
+              id: `proj_${Date.now()}`,
+              name: sample.name,
+              image: imgFile,
+            };
+            setProject(newP);
             setActiveTab('editor');
-          } else {
-            setActiveTab(tab);
-          }
-        }}
-        project={project}
-        onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenAICreativeDirector={() => setIsAICreativeDirectorOpen(true)}
-        onOpenExport={() => setIsExportModalOpen(true)}
-        onOpenGroqSettings={() => setIsGroqModalOpen(true)}
-        onOpenDiagnostics={() => setIsPerformanceModalOpen(true)}
-        onOpenStorageVault={() => setIsStorageQuotaOpen(true)}
-        onOpenVersions={() => setIsVersionSnapshotsOpen(true)}
-        onOpenCloudHub={() => setIsCloudModalOpen(true)}
-        onOpenCollaborationModal={() => setIsCollaborationModalOpen(true)}
-        onNewProject={() => {
-          const sample = SAMPLE_IMAGES[Math.floor(Math.random() * SAMPLE_IMAGES.length)];
-          const imgFile = createSampleImageFile(sample);
-          const newP: Project = {
-            ...DEFAULT_PROJECT_STATE,
-            id: `proj_${Date.now()}`,
-            name: sample.name,
-            image: imgFile,
-          };
-          setProject(newP);
-          setActiveTab('editor');
-          showToast('success', 'New Canvas Created', 'Ready for editing.');
-        }}
-      />
+            showToast('success', 'New Canvas Created', 'Ready for editing.');
+          }}
+          onOpenRaw={() => setIsCameraModalOpen(true)}
+          onSaveProject={() => {
+            autosaveEngine.saveNow().then(() => {
+              showToast('success', 'Project Saved', `Saved "${project.name}" safely to IndexedDB.`);
+            });
+          }}
+          onExportProject={() => setIsExportModalOpen(true)}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onOpenSearch={() => setIsSearchOpen(true)}
+          onOpenAICreativeDirector={() => setIsAICreativeDirectorOpen(true)}
+          onOpenFeatureExplorer={() => setIsFeatureExplorerOpen(true)}
+          onOpenDiagnostics={() => setIsPerformanceModalOpen(true)}
+          onOpenSettings={() => setActiveTab('settings')}
+          onOpenShortcuts={() => setIsShortcutsOpen(true)}
+          onToggleFullscreen={() => {
+            if (!document.fullscreenElement) {
+              document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+              document.exitFullscreen().catch(() => {});
+            }
+          }}
+          onAutoEnhance={() => {
+            setProject((prev) => ({
+              ...prev,
+              currentSettings: {
+                ...prev.currentSettings,
+                exposure: 0.15,
+                contrast: 12,
+                highlights: -15,
+                shadows: 20,
+                vibrance: 14,
+                clarity: 10,
+              },
+              updatedAt: Date.now(),
+            }));
+            showToast('success', 'Auto Enhanced', 'Intelligent dynamic range balance applied.');
+          }}
+          onResetAdjustments={() => {
+            setProject((prev) => ({
+              ...prev,
+              currentSettings: { ...DEFAULT_PROJECT_STATE.currentSettings },
+              toneCurves: { ...DEFAULT_PROJECT_STATE.toneCurves },
+              hsl: { ...DEFAULT_PROJECT_STATE.hsl },
+              updatedAt: Date.now(),
+            }));
+            showToast('info', 'Adjustments Reset', 'Canvas parameters restored to defaults.');
+          }}
+          onOpenCloudHub={() => setIsCloudModalOpen(true)}
+          onOpenCollaboration={() => setIsCollaborationModalOpen(true)}
+        />
+      )}
 
-      {/* 2. MAIN APPLICATION CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#000000]">
-        {/* OPTIONAL WORKFLOW STAGE BAR (Shown when in editor mode) */}
-        {activeTab === 'editor' && (
-          <WorkflowStageBar
-            config={workspaceConfig}
-            onSelectStage={handleSelectStage}
-            onOpenCustomizer={() => setIsWorkspaceCustomizerOpen(true)}
-          />
-        )}
+      {/* MAIN CONTAINER WITH SIDEBAR */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* 1. PERSISTENT DESKTOP PRO SIDEBAR NAVIGATION */}
+        <ProSidebarNav
+          activeTab={activeTab}
+          onSelectTab={(tab) => {
+            if (tab === 'photo') {
+              setActiveTab('editor');
+            } else {
+              setActiveTab(tab);
+            }
+          }}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+          onOpenSearch={() => setIsSearchOpen(true)}
+          onNewProject={() => {
+            const sample = SAMPLE_IMAGES[Math.floor(Math.random() * SAMPLE_IMAGES.length)];
+            const imgFile = createSampleImageFile(sample);
+            const newP: Project = {
+              ...DEFAULT_PROJECT_STATE,
+              id: `proj_${Date.now()}`,
+              name: sample.name,
+              image: imgFile,
+            };
+            setProject(newP);
+            setActiveTab('editor');
+            showToast('success', 'New Canvas Created', 'Ready for editing.');
+          }}
+          onImportRaw={() => setIsCameraModalOpen(true)}
+        />
 
-        {/* WORKSPACE VIEWPORTS */}
-        <main className="flex-1 flex overflow-hidden relative">
+        {/* 2. MAIN APPLICATION CONTENT AREA */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#000000]">
+          {/* OPTIONAL WORKFLOW STAGE BAR (Shown when in editor mode) */}
+          {activeTab === 'editor' && (
+            <WorkflowStageBar
+              config={workspaceConfig}
+              onSelectStage={handleSelectStage}
+              onOpenCustomizer={() => setIsWorkspaceCustomizerOpen(true)}
+            />
+          )}
+
+          {/* WORKSPACE VIEWPORTS */}
+          <main className="flex-1 flex overflow-hidden relative">
           {activeTab === 'home' && (
             <HomeDashboard
               onNavigateTab={(tab) => setActiveTab(tab)}
@@ -839,10 +940,18 @@ export function App() {
             />
           )}
 
-          {(activeTab === 'system' || activeTab === 'settings') && (
+          {activeTab === 'system' && (
             <SystemWorkspaceView showToast={showToast} />
           )}
+
+          {activeTab === 'settings' && (
+            <UniversalSettingsView
+              onClose={() => setActiveTab('editor')}
+              showToast={showToast}
+            />
+          )}
         </main>
+      </div>
       </div>
 
       {/* 4. GLOBAL COMMAND PALETTE (Ctrl+K) */}

@@ -244,7 +244,7 @@ export const ProSidebarNav: React.FC<ProSidebarNavProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-[#CCCCCC]" />
               <span>32-BIT LOCAL</span>
             </div>
-            <span>v14.0 PRO</span>
+            <span>v15.0 PRO</span>
           </div>
         ) : (
           <div className="flex justify-center" title="32-Bit Local Engine">

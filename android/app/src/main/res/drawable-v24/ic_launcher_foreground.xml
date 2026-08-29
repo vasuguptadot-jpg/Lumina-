@@ -1,0 +1,28 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Camera Lens Outer Ring -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:pathData="M54,54m-28,0a28,28 0,1,1 56,0a28,28 0,1,1 -56,0" />
+    <!-- Aperture Blades -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#CCCCCC"
+        android:strokeWidth="1.8"
+        android:pathData="M54,26 L64,48 M64,48 L80,56 M80,56 L66,74 M66,74 L46,78 M46,78 L34,60 M34,60 L44,38 Z" />
+    <!-- Center Optics Element -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54m-8,0a8,8 0,1,1 16,0a8,8 0,1,1 -16,0" />
+    <!-- Viewfinder Corner Marks -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#777777"
+        android:strokeWidth="1.5"
+        android:pathData="M18,26 L18,18 L26,18 M82,18 L90,18 L90,26 M90,82 L90,90 L82,90 M26,90 L18,90 L18,82" />
+</vector>

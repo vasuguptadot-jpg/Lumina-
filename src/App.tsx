@@ -71,6 +71,7 @@ import { cloudSyncEngine } from './services/cloudSyncEngine';
 import { CloudConflictModal } from './components/cloud/CloudConflictModal';
 import { ProjectConflictReport } from './types/cloudSync';
 import { User } from 'firebase/auth';
+import { mobileNative } from './services/mobileNativeService';
 
 export function App() {
   const [project, setProject] = useState<Project>(() => {
@@ -278,6 +279,78 @@ export function App() {
       }
     });
   }, []);
+
+  // 5. Mobile Native Platform Lifecycle & Hardware Back Button Handler
+  useEffect(() => {
+    mobileNative.initialize();
+
+    const unreg = mobileNative.registerBackButtonHandler(() => {
+      // Check if any modal is open and close the active modal first
+      if (isExportModalOpen) { setIsExportModalOpen(false); return true; }
+      if (isSocialExportModalOpen) { setIsSocialExportModalOpen(false); return true; }
+      if (isCloudModalOpen) { setIsCloudModalOpen(false); return true; }
+      if (isAICreativeDirectorOpen) { setIsAICreativeDirectorOpen(false); return true; }
+      if (isFeatureExplorerOpen) { setIsFeatureExplorerOpen(false); return true; }
+      if (isShortcutsOpen) { setIsShortcutsOpen(false); return true; }
+      if (isCameraModalOpen) { setIsCameraModalOpen(false); return true; }
+      if (isCollaborationModalOpen) { setIsCollaborationModalOpen(false); return true; }
+      if (isVersionComparisonOpen) { setIsVersionComparisonOpen(false); return true; }
+      if (isPluginModalOpen) { setIsPluginModalOpen(false); return true; }
+      if (isAutomationModalOpen) { setIsAutomationModalOpen(false); return true; }
+      if (isDeveloperModalOpen) { setIsDeveloperModalOpen(false); return true; }
+      if (isSecurityModalOpen) { setIsSecurityModalOpen(false); return true; }
+      if (isPerformanceModalOpen) { setIsPerformanceModalOpen(false); return true; }
+      if (isGroqModalOpen) { setIsGroqModalOpen(false); return true; }
+      if (isWorkspaceCustomizerOpen) { setIsWorkspaceCustomizerOpen(false); return true; }
+      if (isUnsplashModalOpen) { setIsUnsplashModalOpen(false); return true; }
+      if (isSearchOpen) { setIsSearchOpen(false); return true; }
+      if (isVersionSnapshotsOpen) { setIsVersionSnapshotsOpen(false); return true; }
+      if (isStorageQuotaOpen) { setIsStorageQuotaOpen(false); return true; }
+      if (educationTool !== null) { setEducationTool(null); return true; }
+
+      // If active tab is not 'home', go to 'home'
+      if (activeTab !== 'home') {
+        setActiveTab('home');
+        return true;
+      }
+
+      return false; // Delegate to system minimize
+    });
+
+    const handleAppPause = () => {
+      autosaveEngine.saveNow().catch(() => {});
+    };
+
+    window.addEventListener('lumina-app-pause', handleAppPause);
+
+    return () => {
+      unreg();
+      window.removeEventListener('lumina-app-pause', handleAppPause);
+    };
+  }, [
+    isExportModalOpen,
+    isSocialExportModalOpen,
+    isCloudModalOpen,
+    isAICreativeDirectorOpen,
+    isFeatureExplorerOpen,
+    isShortcutsOpen,
+    isCameraModalOpen,
+    isCollaborationModalOpen,
+    isVersionComparisonOpen,
+    isPluginModalOpen,
+    isAutomationModalOpen,
+    isDeveloperModalOpen,
+    isSecurityModalOpen,
+    isPerformanceModalOpen,
+    isGroqModalOpen,
+    isWorkspaceCustomizerOpen,
+    isUnsplashModalOpen,
+    isSearchOpen,
+    isVersionSnapshotsOpen,
+    isStorageQuotaOpen,
+    educationTool,
+    activeTab,
+  ]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {

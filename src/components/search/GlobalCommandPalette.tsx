@@ -284,16 +284,16 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 p-4 bg-zinc-950/80 backdrop-blur-sm select-none"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 p-4 bg-[#050505]/90 select-none"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-zinc-900 border border-zinc-750 rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[75vh]"
+        className="w-full max-w-2xl bg-[#050505] border border-[rgba(230,227,222,0.15)] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[75vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input bar */}
-        <div className="p-3.5 border-b border-zinc-800 flex items-center gap-3 bg-zinc-950">
-          <Search className="w-4 h-4 text-zinc-400 shrink-0" />
+        <div className="p-3.5 border-b border-[rgba(230,227,222,0.08)] flex items-center gap-3 bg-[#050505]">
+          <Search className="w-4 h-4 text-[#7A0F18] shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -304,24 +304,24 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
               setSelectedIndex(0);
             }}
             onKeyDown={handleKeyDown}
-            className="w-full bg-transparent text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 outline-none font-sans"
+            className="w-full bg-transparent text-xs sm:text-sm text-[#E6E3DE] placeholder-[rgba(230,227,222,0.45)] outline-none font-sans"
           />
-          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-900 text-zinc-400 border border-zinc-800">
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-[#050505] text-[rgba(230,227,222,0.45)] border border-[rgba(230,227,222,0.12)]">
             ESC
           </kbd>
         </div>
 
         {/* Results List */}
         <div className="p-2 overflow-y-auto space-y-1 flex-1">
-          <div className="px-2 py-1 text-[10px] font-mono font-medium text-zinc-500 uppercase tracking-wider flex items-center justify-between">
+          <div className="px-2 py-1 text-[10px] font-mono font-medium text-[rgba(230,227,222,0.45)] uppercase tracking-wider flex items-center justify-between">
             <span>{query ? 'Matched Actions' : 'Command Matrix'}</span>
-            <span className="text-zinc-500">↑↓ to navigate • ↵ to execute</span>
+            <span className="text-[rgba(230,227,222,0.45)]">↑↓ to navigate • ↵ to execute</span>
           </div>
 
           {results.length === 0 ? (
             <div className="p-8 text-center space-y-2">
-              <Compass className="w-6 h-6 text-zinc-600 mx-auto" />
-              <p className="text-xs font-mono text-zinc-500">
+              <Compass className="w-6 h-6 text-[rgba(230,227,222,0.45)] mx-auto" />
+              <p className="text-xs font-mono text-[rgba(230,227,222,0.45)]">
                 No commands matching &ldquo;{query}&rdquo;
               </p>
             </div>
@@ -339,36 +339,36 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={`p-2.5 rounded flex items-center justify-between cursor-pointer transition-colors ${
                     isSelected
-                      ? 'bg-zinc-800 text-zinc-100 border border-zinc-700'
-                      : 'hover:bg-zinc-850/60 text-zinc-300 border border-transparent'
+                      ? 'bg-[#7A0F18] text-[#E6E3DE] border border-[#7A0F18]'
+                      : 'hover:bg-[rgba(230,227,222,0.04)] text-[rgba(230,227,222,0.70)] border border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-7 h-7 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 shrink-0">
-                      {item.type === 'ai_intent' && <Sparkles className="w-3.5 h-3.5" />}
-                      {item.type === 'preset' && <Palette className="w-3.5 h-3.5" />}
-                      {item.type === 'tool' && <Sliders className="w-3.5 h-3.5" />}
-                      {item.type === 'project' && <FolderOpen className="w-3.5 h-3.5" />}
-                      {item.type === 'setting' && <Settings className="w-3.5 h-3.5" />}
+                    <div className="w-7 h-7 rounded bg-[#050505] border border-[rgba(230,227,222,0.12)] flex items-center justify-center text-[#E6E3DE] shrink-0">
+                      {item.type === 'ai_intent' && <Sparkles className="w-3.5 h-3.5 text-[#7A0F18]" />}
+                      {item.type === 'preset' && <Palette className="w-3.5 h-3.5 text-[#E6E3DE]" />}
+                      {item.type === 'tool' && <Sliders className="w-3.5 h-3.5 text-[#E6E3DE]" />}
+                      {item.type === 'project' && <FolderOpen className="w-3.5 h-3.5 text-[#E6E3DE]" />}
+                      {item.type === 'setting' && <Settings className="w-3.5 h-3.5 text-[#E6E3DE]" />}
                     </div>
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-zinc-100 truncate">
+                        <span className="text-xs font-semibold text-[#E6E3DE] truncate">
                           {item.title}
                         </span>
                         {item.badge && (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium border uppercase bg-zinc-900 text-zinc-400 border-zinc-750">
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium border uppercase bg-[#050505] text-[rgba(230,227,222,0.70)] border-[rgba(230,227,222,0.15)]">
                             {item.badge}
                           </span>
                         )}
                         {item.category && (
-                          <span className="text-[10px] text-zinc-500 font-mono">
+                          <span className="text-[10px] text-[rgba(230,227,222,0.45)] font-mono">
                             • {item.category}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-zinc-400 truncate">
+                      <p className="text-[11px] text-[rgba(230,227,222,0.70)] truncate">
                         {item.subtitle}
                       </p>
                     </div>
@@ -376,12 +376,12 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
                   <div className="flex items-center gap-2 shrink-0">
                     {item.shortcut && (
-                      <kbd className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-zinc-950 text-zinc-400 border border-zinc-800">
+                      <kbd className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-[#050505] text-[rgba(230,227,222,0.70)] border border-[rgba(230,227,222,0.12)]">
                         {item.shortcut}
                       </kbd>
                     )}
                     {isSelected && (
-                      <CornerDownLeft className="w-3.5 h-3.5 text-zinc-200" />
+                      <CornerDownLeft className="w-3.5 h-3.5 text-[#E6E3DE]" />
                     )}
                   </div>
                 </div>
@@ -391,7 +391,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-3 py-2 border-t border-zinc-800 bg-zinc-950 flex items-center justify-between text-[10px] font-mono text-zinc-500">
+        <div className="px-3 py-2 border-t border-[rgba(230,227,222,0.08)] bg-[#050505] flex items-center justify-between text-[10px] font-mono text-[rgba(230,227,222,0.45)]">
           <div className="flex items-center gap-3">
             <span><strong>⌘K</strong> Command Bar</span>
             <span><strong>ESC</strong> Dismiss</span>

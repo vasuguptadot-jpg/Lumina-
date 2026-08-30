@@ -1763,6 +1763,16 @@ export interface ProjectVersionBranch {
   data: EditHistorySnapshot;
 }
 
+export type WorkflowStage =
+  | 'cull'
+  | 'crop-geometry'
+  | 'raw-develop'
+  | 'ai-enhance'
+  | 'local-retouch'
+  | 'color-grade'
+  | 'export-share';
+
+
 
 
 

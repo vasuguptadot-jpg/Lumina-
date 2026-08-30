@@ -564,32 +564,32 @@ export const Editor: React.FC<EditorProps> = ({
   // If no photo is loaded yet, display rich drag & drop welcome landing
   if (!project.image?.originalUrl) {
     return (
-      <div className="flex-1 h-full bg-zinc-950 flex flex-col items-center justify-center p-6 select-none font-sans text-zinc-100">
+      <div className="flex-1 h-full bg-[#050505] flex flex-col items-center justify-center p-6 select-none font-sans text-[#E6E3DE]">
         <div className="max-w-xl w-full text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs font-mono">
-            <Sliders className="w-3.5 h-3.5 text-zinc-400" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#050505] border border-[rgba(230,227,222,0.15)] text-[#E6E3DE] text-xs font-mono">
+            <Sliders className="w-3.5 h-3.5 text-[#7A0F18]" />
             <span>LUMINA WORKSTATION • ZERO DATA LOSS CERTIFIED</span>
           </div>
 
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#E6E3DE]">
               Professional RAW & Color Workstation
             </h1>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-2 max-w-md mx-auto leading-relaxed">
+            <p className="text-xs sm:text-sm text-[rgba(230,227,222,0.70)] mt-2 max-w-md mx-auto leading-relaxed">
               Deterministic 32-bit floating-point image pipeline, 100+ RAW camera sensor profiles, selective neural masking, and lossless master exports.
             </p>
           </div>
 
           {/* Big Drag and Drop Dropzone */}
-          <label className="border-2 border-dashed border-zinc-800 hover:border-zinc-500 bg-zinc-900/40 hover:bg-zinc-900/80 rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer transition-colors group shadow-2xl">
-            <div className="w-14 h-14 rounded-lg bg-zinc-850 border border-zinc-700 flex items-center justify-center text-zinc-200 group-hover:border-zinc-500 transition-colors mb-4">
-              <UploadCloud className="w-7 h-7" />
+          <label className="border-2 border-dashed border-[rgba(230,227,222,0.15)] hover:border-[#7A0F18] bg-[#050505] hover:bg-[rgba(230,227,222,0.04)] rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer transition-colors group shadow-2xl">
+            <div className="w-14 h-14 rounded-lg bg-[#050505] border border-[rgba(230,227,222,0.15)] flex items-center justify-center text-[#E6E3DE] group-hover:border-[#7A0F18] transition-colors mb-4">
+              <UploadCloud className="w-7 h-7 text-[#7A0F18]" />
             </div>
 
-            <div className="text-xs sm:text-sm font-semibold text-zinc-200 group-hover:text-white transition-colors">
+            <div className="text-xs sm:text-sm font-semibold text-[#E6E3DE] group-hover:text-[#E6E3DE] transition-colors">
               Open Master Image or RAW Sensor File
             </div>
-            <div className="text-[11px] font-mono text-zinc-500 mt-1">
+            <div className="text-[11px] font-mono text-[rgba(230,227,222,0.45)] mt-1">
               Supports DNG, CR2, CR3, NEF, ARW, RAF, ORF, RW2, PEF, TIFF, PNG, JPEG
             </div>
 
@@ -603,12 +603,12 @@ export const Editor: React.FC<EditorProps> = ({
 
           {/* Quick Demo Gallery Button */}
           <div className="pt-2 flex items-center justify-center gap-3 font-mono text-xs">
-            <span className="text-zinc-500">or load calibrated reference asset:</span>
+            <span className="text-[rgba(230,227,222,0.45)]">or load calibrated reference asset:</span>
             <button
               onClick={onOpenSampleGallery}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs text-zinc-200 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#050505] hover:bg-[rgba(230,227,222,0.08)] border border-[rgba(230,227,222,0.15)] text-xs text-[#E6E3DE] transition-colors"
             >
-              <ImageIcon className="w-3.5 h-3.5 text-zinc-400" />
+              <ImageIcon className="w-3.5 h-3.5 text-[rgba(230,227,222,0.70)]" />
               <span>Browse Camera Corpus</span>
             </button>
           </div>
@@ -618,11 +618,11 @@ export const Editor: React.FC<EditorProps> = ({
   }
 
   return (
-    <div className="flex-1 h-full flex flex-col lg:flex-row overflow-hidden bg-zinc-950 select-none text-zinc-100">
+    <div className="flex-1 h-full flex flex-col lg:flex-row overflow-hidden bg-[#050505] select-none text-[#E6E3DE]">
       {/* Center Interactive Canvas Viewport */}
-      <div className="flex-1 h-full flex flex-col min-w-0 relative bg-zinc-950">
+      <div className="flex-1 h-full flex flex-col min-w-0 relative bg-[#050505]">
         {/* Floating Natural Language Prompt Bar */}
-        <div className="bg-zinc-950 border-b border-zinc-850 px-4 py-1 flex items-center justify-between gap-2">
+        <div className="bg-[#050505] border-b border-[rgba(230,227,222,0.08)] px-4 py-1 flex items-center justify-between gap-2">
           <div className="flex-1 flex justify-center">
             <NaturalLanguageEditorBar
               project={project}
@@ -635,7 +635,7 @@ export const Editor: React.FC<EditorProps> = ({
           {/* Distraction-Free Toggle */}
           <button
             onClick={() => setIsInspectorCollapsed(!isInspectorCollapsed)}
-            className="hidden lg:flex items-center gap-1 px-2 py-1 rounded text-[10px] font-mono bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors"
+            className="hidden lg:flex items-center gap-1 px-2 py-1 rounded text-[10px] font-mono bg-[#050505] hover:bg-[rgba(230,227,222,0.08)] text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] border border-[rgba(230,227,222,0.12)] transition-colors"
             title={isInspectorCollapsed ? 'Show Inspector Panel' : 'Distraction-Free Canvas Mode'}
           >
             <span>{isInspectorCollapsed ? '◀ SHOW INSPECTOR' : 'FULL CANVAS ▶'}</span>
@@ -716,7 +716,7 @@ export const Editor: React.FC<EditorProps> = ({
 
       {/* Right Side Tools & Adjustments Studio Sidebar (Collapsible) */}
       {!isInspectorCollapsed && (
-        <aside className="w-full lg:w-84 xl:w-96 bg-zinc-950 border-t lg:border-t-0 lg:border-l border-zinc-800 flex flex-col shrink-0 h-80 lg:h-full z-10 shadow-2xl">
+        <aside className="w-full lg:w-84 xl:w-96 bg-[#050505] border-t lg:border-t-0 lg:border-l border-[rgba(230,227,222,0.08)] flex flex-col shrink-0 h-80 lg:h-full z-10 shadow-2xl">
           {/* Real-time RGB Histogram & Camera EXIF Bar */}
           <HistogramView metadata={project.image.rawMetadata} />
 
@@ -729,7 +729,7 @@ export const Editor: React.FC<EditorProps> = ({
           />
 
           {/* Tool Active Panel Content Area */}
-          <div className="flex-1 overflow-y-auto bg-zinc-950">
+          <div className="flex-1 overflow-y-auto bg-[#050505]">
           {activeToolTab === 'performance' && (
             <PerformancePanel
               project={project}

@@ -1,29 +1,17 @@
+/**
+ * Lumina Studio Pro — Global Navigation Bar
+ * Strict 3-Color Hierarchy: #050505 (Black), #7A0F18 (Dark Red), #E6E3DE (Greyish White).
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Home,
-  FolderOpen,
-  Sliders,
-  Sparkles,
-  Type,
-  Palette,
-  Layers,
-  Cloud,
-  Settings,
   Search,
   Undo2,
   Redo2,
   Download,
   Menu,
   X,
-  Zap,
-  Terminal,
-  Camera,
   ChevronDown,
-  BrainCircuit,
-  Grid,
-  Shield,
-  Clock,
-  Share2,
 } from 'lucide-react';
 import { MainNavTab, UserSkillMode } from '../../types/navigation';
 import { Project } from '../../types/editor';
@@ -62,14 +50,11 @@ interface GlobalNavProps {
 export const GlobalNav: React.FC<GlobalNavProps> = ({
   activeTab,
   onSelectTab,
-  skillMode,
-  onToggleSkillMode,
   onOpenSearch,
   onOpenFeatureExplorer,
   onOpenAICreativeDirector,
   onOpenExport,
   onOpenGroqSettings,
-  project,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -175,7 +160,7 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
   ];
 
   return (
-    <header className="bg-[#050505] border-b border-[#2A2A2A] z-40 select-none text-zinc-100 font-sans">
+    <header className="bg-[#050505] border-b border-[rgba(230,227,222,0.08)] z-40 select-none text-[#E6E3DE] font-sans">
       {/* Desktop Master Top Application Bar */}
       <div className="h-11 px-3 sm:px-4 flex items-center justify-between gap-3" ref={dropdownRef}>
         {/* Left: Brand Identity & Telemetry */}
@@ -184,14 +169,14 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
             onClick={() => onSelectTab('home')}
             className="flex items-center gap-2 cursor-pointer group"
           >
-            <div className="w-6 h-6 rounded bg-[#141414] border border-[#2A2A2A] flex items-center justify-center group-hover:border-zinc-500 transition-colors">
-              <span className="font-mono font-bold text-[11px] text-white">L</span>
+            <div className="w-6 h-6 rounded bg-[#7A0F18] flex items-center justify-center">
+              <span className="font-mono font-bold text-[11px] text-[#E6E3DE]">L</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-xs tracking-wider uppercase text-white">
+              <span className="font-bold text-xs tracking-wider uppercase text-[#E6E3DE]">
                 Lumina
               </span>
-              <span className="text-[9px] uppercase font-mono font-bold px-1 py-0.5 rounded bg-[#141414] text-zinc-400 border border-[#2A2A2A]">
+              <span className="text-[9px] uppercase font-mono font-bold px-1 py-0.5 rounded bg-[rgba(230,227,222,0.06)] text-[rgba(230,227,222,0.70)] border border-[rgba(230,227,222,0.12)]">
                 PRO
               </span>
             </div>
@@ -200,10 +185,10 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
           {/* Engine Architecture Indicator */}
           <button
             onClick={onOpenGroqSettings}
-            className="hidden xl:flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono border bg-[#0D0D0D] text-zinc-400 border-[#2A2A2A] hover:border-zinc-700 hover:text-zinc-200 transition-colors"
+            className="hidden xl:flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono border bg-[#050505] text-[rgba(230,227,222,0.70)] border-[rgba(230,227,222,0.10)] hover:border-[#7A0F18] hover:text-[#E6E3DE] transition-colors"
             title="Local GPU/Wasm Architecture"
           >
-            <span className="text-zinc-400 text-[10px]">●</span>
+            <span className="text-[#7A0F18] text-[10px]">●</span>
             <span>LOCAL ENGINE</span>
           </button>
         </div>
@@ -214,8 +199,8 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
             onClick={() => onSelectTab('home')}
             className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
               activeTab === 'home'
-                ? 'bg-[#141414] text-white border border-[#2A2A2A]'
-                : 'text-zinc-400 hover:text-white hover:bg-[#0D0D0D]'
+                ? 'bg-[#7A0F18] text-[#E6E3DE]'
+                : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)]'
             }`}
           >
             Studio
@@ -229,17 +214,17 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
                   onClick={() => setActiveDropdown(isOpen ? null : cat.id)}
                   className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors ${
                     isOpen
-                      ? 'bg-[#141414] text-white border border-[#2A2A2A]'
-                      : 'text-zinc-400 hover:text-white hover:bg-[#0D0D0D]'
+                      ? 'bg-[#7A0F18] text-[#E6E3DE]'
+                      : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)]'
                   }`}
                 >
                   <span>{cat.label}</span>
-                  <ChevronDown className="w-3 h-3 text-zinc-500" />
+                  <ChevronDown className="w-3 h-3 text-[rgba(230,227,222,0.45)]" />
                 </button>
 
                 {/* Dropdown Popover */}
                 {isOpen && (
-                  <div className="absolute top-full left-0 mt-1.5 w-48 rounded-lg bg-[#0D0D0D] border border-[#2A2A2A] shadow-2xl py-1 z-50 animate-fade-in">
+                  <div className="absolute top-full left-0 mt-1.5 w-48 rounded-lg bg-[#050505] border border-[rgba(230,227,222,0.12)] shadow-2xl py-1 z-50 animate-fade-in">
                     {cat.items.map((item, idx) => (
                       <button
                         key={idx}
@@ -247,7 +232,7 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
                           item.action();
                           setActiveDropdown(null);
                         }}
-                        className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white hover:bg-[#141414] transition-colors"
+                        className="w-full text-left px-3 py-1.5 text-xs text-[#E6E3DE] hover:bg-[#7A0F18] transition-colors"
                       >
                         {item.label}
                       </button>
@@ -260,7 +245,7 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
 
           <button
             onClick={onOpenFeatureExplorer}
-            className="px-2.5 py-1 rounded text-xs font-medium text-zinc-400 hover:text-white hover:bg-[#0D0D0D] transition-colors"
+            className="px-2.5 py-1 rounded text-xs font-medium text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)] transition-colors"
           >
             Tools
           </button>
@@ -271,32 +256,32 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
           {/* Global Search / Command Bar Trigger */}
           <button
             onClick={onOpenSearch}
-            className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#0D0D0D] hover:bg-[#141414] text-zinc-400 hover:text-zinc-200 border border-[#2A2A2A] transition-colors text-xs"
+            className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#050505] hover:bg-[rgba(230,227,222,0.06)] text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] border border-[rgba(230,227,222,0.12)] hover:border-[#7A0F18] transition-colors text-xs"
             title="Command Palette (Cmd+K / Ctrl+K)"
           >
             <Search className="w-3.5 h-3.5" />
             <span className="hidden sm:inline text-[11px]">Command</span>
-            <kbd className="hidden lg:inline text-[9px] font-mono px-1 bg-[#050505] text-zinc-500 border border-[#2A2A2A] rounded">
+            <kbd className="hidden lg:inline text-[9px] font-mono px-1 bg-[#050505] text-[rgba(230,227,222,0.45)] border border-[rgba(230,227,222,0.12)] rounded">
               ⌘K
             </kbd>
           </button>
 
           {/* Undo / Redo controls */}
           {onUndo && onRedo && (
-            <div className="hidden sm:flex items-center border border-[#2A2A2A] rounded bg-[#0D0D0D] overflow-hidden">
+            <div className="hidden sm:flex items-center border border-[rgba(230,227,222,0.12)] rounded bg-[#050505] overflow-hidden">
               <button
                 onClick={onUndo}
                 disabled={!canUndo}
-                className="p-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-[#141414] disabled:opacity-25 disabled:hover:bg-transparent transition-colors"
+                className="p-1.5 text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.08)] disabled:opacity-25 disabled:hover:bg-transparent transition-colors"
                 title="Undo (Ctrl+Z)"
               >
                 <Undo2 className="w-3 h-3" />
               </button>
-              <div className="w-[1px] h-3 bg-[#2A2A2A]" />
+              <div className="w-[1px] h-3 bg-[rgba(230,227,222,0.12)]" />
               <button
                 onClick={onRedo}
                 disabled={!canRedo}
-                className="p-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-[#141414] disabled:opacity-25 disabled:hover:bg-transparent transition-colors"
+                className="p-1.5 text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.08)] disabled:opacity-25 disabled:hover:bg-transparent transition-colors"
                 title="Redo (Ctrl+Y / Shift+Ctrl+Z)"
               >
                 <Redo2 className="w-3 h-3" />
@@ -320,7 +305,7 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
           {/* Primary Export Button */}
           <button
             onClick={onOpenExport}
-            className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold bg-white hover:bg-zinc-200 text-black transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold bg-[#7A0F18] hover:bg-[#8F141E] text-[#E6E3DE] transition-colors shadow-sm"
             title="Export Master Asset (Ctrl+E)"
           >
             <Download className="w-3.5 h-3.5" />
@@ -330,7 +315,7 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-1.5 rounded text-zinc-400 hover:text-white bg-[#0D0D0D] border border-[#2A2A2A]"
+            className="lg:hidden p-1.5 rounded text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] bg-[#050505] border border-[rgba(230,227,222,0.12)]"
             aria-label="Toggle navigation menu"
           >
             {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -340,10 +325,10 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
 
       {/* Mobile Drawer Navigation (Categorized) */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-[#2A2A2A] bg-[#0D0D0D] px-4 py-3 space-y-4 max-h-[75vh] overflow-y-auto">
+        <div className="lg:hidden border-t border-[rgba(230,227,222,0.08)] bg-[#050505] px-4 py-3 space-y-4 max-h-[75vh] overflow-y-auto">
           {CATEGORIES.map((cat) => (
             <div key={cat.id} className="space-y-1">
-              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-wider px-1">
+              <span className="text-[10px] font-mono font-bold text-[rgba(230,227,222,0.45)] uppercase tracking-wider px-1">
                 {cat.label}
               </span>
               <div className="grid grid-cols-2 gap-1.5">
@@ -354,7 +339,7 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
                       item.action();
                       setIsMobileMenuOpen(false);
                     }}
-                    className="text-left px-2.5 py-2 rounded bg-[#141414] hover:bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-zinc-200 hover:text-white transition-colors"
+                    className="text-left px-2.5 py-2 rounded bg-[rgba(230,227,222,0.04)] hover:bg-[#7A0F18] border border-[rgba(230,227,222,0.10)] text-xs text-[#E6E3DE] transition-colors"
                   >
                     {item.label}
                   </button>
@@ -363,13 +348,13 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
             </div>
           ))}
 
-          <div className="pt-2 border-t border-[#2A2A2A] flex items-center justify-between">
+          <div className="pt-2 border-t border-[rgba(230,227,222,0.08)] flex items-center justify-between">
             <button
               onClick={() => {
                 onOpenFeatureExplorer();
                 setIsMobileMenuOpen(false);
               }}
-              className="px-3 py-2 text-xs font-medium bg-[#141414] text-zinc-200 border border-[#2A2A2A] rounded-lg"
+              className="px-3 py-2 text-xs font-medium bg-[#050505] text-[#E6E3DE] border border-[rgba(230,227,222,0.15)] rounded-lg hover:border-[#7A0F18]"
             >
               Explore 130+ Tools
             </button>
@@ -378,7 +363,7 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({
                 onOpenExport();
                 setIsMobileMenuOpen(false);
               }}
-              className="px-4 py-2 text-xs font-semibold bg-white text-black rounded-lg"
+              className="px-4 py-2 text-xs font-semibold bg-[#7A0F18] text-[#E6E3DE] hover:bg-[#8F141E] rounded-lg"
             >
               Export
             </button>

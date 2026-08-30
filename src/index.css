@@ -2,20 +2,22 @@
 
 @layer base {
   :root {
-    --bg-app: #09090b;
-    --bg-surface: #18181b;
-    --bg-surface-elevated: #27272a;
-    --border-subtle: #27272a;
-    --border-strong: #3f3f46;
-    --text-primary: #fafafa;
-    --text-secondary: #d4d4d8;
-    --text-muted: #a1a1aa;
+    --bg-app: #050505;
+    --bg-surface: #0c0c0b;
+    --bg-surface-elevated: #141312;
+    --border-subtle: rgba(230, 227, 222, 0.08);
+    --border-strong: rgba(230, 227, 222, 0.16);
+    --text-primary: #E6E3DE;
+    --text-secondary: rgba(230, 227, 222, 0.70);
+    --text-muted: rgba(230, 227, 222, 0.45);
+    --accent-red: #7A0F18;
+    --accent-red-hover: #8F141E;
     color-scheme: dark;
   }
 
   body {
-    background-color: #09090b;
-    color: #fafafa;
+    background-color: #050505;
+    color: #E6E3DE;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -23,30 +25,30 @@
     overflow: hidden;
   }
 
-  /* Custom Professional Workstation Scrollbar */
+  /* Custom Professional Darkroom Workstation Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #09090b;
+    background: #050505;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #27272a;
+    background: rgba(230, 227, 222, 0.15);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #3f3f46;
+    background: rgba(230, 227, 222, 0.25);
   }
 
-  /* Standard Monochrome Sliders */
+  /* Standard Sliders: Greyish-white track, Dark Red active/interaction, Greyish-white thumb */
   input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
-    background: #27272a;
+    background: rgba(230, 227, 222, 0.15);
     height: 4px;
     border-radius: 2px;
     outline: none;
@@ -58,37 +60,43 @@
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: #fafafa;
-    border: 2px solid #18181b;
+    background: #E6E3DE;
+    border: 2px solid #7A0F18;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-    transition: transform 0.1s ease, background 0.1s ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+    transition: transform 0.1s ease, background 0.1s ease, border-color 0.1s ease;
   }
 
   input[type="range"]::-webkit-slider-thumb:hover {
-    transform: scale(1.15);
-    background: #ffffff;
+    transform: scale(1.18);
+    background: #E6E3DE;
+    border-color: #8F141E;
   }
 
   input[type="range"]::-webkit-slider-thumb:active {
     transform: scale(1.25);
-    background: #e4e4e7;
+    background: #E6E3DE;
+    border-color: #7A0F18;
   }
 
   input[type="range"]::-moz-range-thumb {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: #fafafa;
-    border: 2px solid #18181b;
+    background: #E6E3DE;
+    border: 2px solid #7A0F18;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  }
+
+  input[type="range"]:focus {
+    outline: none;
   }
 }
 
-/* Accessibility high-contrast focus outlines */
+/* Accessibility high-contrast focus outlines in Dark Red / Greyish White */
 :focus-visible {
-  outline: 2px solid #ffffff;
+  outline: 2px solid #7A0F18;
   outline-offset: 2px;
 }
 
@@ -96,4 +104,57 @@
 .font-technical {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* Common Lumina Utility Classes */
+.lumina-bg {
+  background-color: #050505;
+}
+
+.lumina-surface {
+  background-color: #0c0c0b;
+  border-color: rgba(230, 227, 222, 0.08);
+}
+
+.lumina-surface-raised {
+  background-color: #141312;
+  border-color: rgba(230, 227, 222, 0.12);
+}
+
+.lumina-text-primary {
+  color: #E6E3DE;
+}
+
+.lumina-text-secondary {
+  color: rgba(230, 227, 222, 0.70);
+}
+
+.lumina-text-muted {
+  color: rgba(230, 227, 222, 0.45);
+}
+
+.lumina-text-disabled {
+  color: rgba(230, 227, 222, 0.25);
+}
+
+.lumina-btn-primary {
+  background-color: #7A0F18;
+  color: #E6E3DE;
+  transition: background-color 0.15s ease;
+}
+
+.lumina-btn-primary:hover {
+  background-color: #8F141E;
+}
+
+.lumina-btn-secondary {
+  background-color: #050505;
+  border: 1px solid rgba(230, 227, 222, 0.20);
+  color: #E6E3DE;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.lumina-btn-secondary:hover {
+  border-color: #7A0F18;
+  background-color: rgba(122, 15, 24, 0.15);
 }

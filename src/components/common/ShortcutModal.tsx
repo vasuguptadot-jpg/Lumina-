@@ -1,3 +1,8 @@
+/**
+ * Lumina Studio Pro — Keyboard Shortcut Reference Modal
+ * Strict 3-Color Hierarchy: #050505 (Black), #7A0F18 (Dark Red), #E6E3DE (Greyish White).
+ */
+
 import React from 'react';
 import { Keyboard, X } from 'lucide-react';
 
@@ -10,10 +15,10 @@ export const ShortcutModal: React.FC<ShortcutModalProps> = ({ isOpen, onClose })
   if (!isOpen) return null;
 
   const shortcuts = [
-    { key: '1 - 9', desc: 'Jump to Workflow Stage (Library → Develop → Select → Mask → Retouch → Layers → AI → Design → Export)' },
+    { key: '1 - 7', desc: 'Jump to Workflow Stage (Cull → Crop → Develop → AI → Retouch → Grade → Export)' },
     { key: '[ / ]', desc: 'Cycle Previous / Next Workflow Stage' },
     { key: 'Ctrl + Z', desc: 'Undo last edit or stroke' },
-    { key: 'Ctrl + Y / Shift+Z', desc: 'Redo last edit' },
+    { key: 'Ctrl + Y', desc: 'Redo last edit' },
     { key: '\\ (Backslash)', desc: 'Hold to peek original photo' },
     { key: 'Space + Drag', desc: 'Pan viewport image' },
     { key: 'Scroll Wheel', desc: 'Pan viewport vertically' },
@@ -32,18 +37,18 @@ export const ShortcutModal: React.FC<ShortcutModalProps> = ({ isOpen, onClose })
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none">
-      <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-indigo-950 border border-indigo-500/40 text-indigo-400">
+    <div className="fixed inset-0 z-50 bg-[#050505]/90 flex items-center justify-center p-4 select-none">
+      <div className="bg-[#050505] border border-[rgba(230,227,222,0.15)] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-[rgba(230,227,222,0.08)] flex items-center justify-between bg-[#050505]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#7A0F18] flex items-center justify-center text-[#E6E3DE]">
               <Keyboard className="w-4 h-4" />
             </div>
-            <h3 className="text-sm font-bold text-white">Keyboard Shortcuts</h3>
+            <h3 className="text-sm font-bold text-[#E6E3DE]">Keyboard Shortcuts</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="p-1.5 rounded-lg text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -53,10 +58,10 @@ export const ShortcutModal: React.FC<ShortcutModalProps> = ({ isOpen, onClose })
           {shortcuts.map((s, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 text-xs"
+              className="flex items-center justify-between p-2 rounded-lg bg-[#050505] border border-[rgba(230,227,222,0.08)] text-xs"
             >
-              <span className="text-slate-300">{s.desc}</span>
-              <kbd className="px-2 py-1 bg-slate-800 border border-slate-700 text-indigo-300 font-mono rounded text-[11px] font-bold">
+              <span className="text-[rgba(230,227,222,0.70)] text-[11px]">{s.desc}</span>
+              <kbd className="px-2 py-0.5 bg-[#050505] border border-[rgba(230,227,222,0.15)] text-[#E6E3DE] font-mono rounded text-[10px] font-bold shrink-0 ml-2">
                 {s.key}
               </kbd>
             </div>

@@ -1,26 +1,23 @@
+/**
+ * Lumina Studio Pro — Projects Management View
+ * Strict 3-Color Hierarchy: #050505 (Black), #7A0F18 (Dark Red), #E6E3DE (Greyish White).
+ */
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   FolderOpen,
   Plus,
-  Clock,
   Trash2,
   Copy,
   Edit3,
   Search,
   ArrowRight,
-  Sparkles,
-  Layers,
-  Sliders,
-  CheckCircle2,
   Upload,
   Download,
   HardDrive,
   ArrowUpDown,
-  MoreVertical,
-  FileCheck,
   Grid,
   List,
-  Tag,
   Check,
   X,
   FileImage,
@@ -139,108 +136,97 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
     try {
       showToast?.('info', 'Exporting Package', `Generating .lumina for "${proj.name}"...`);
       await exportPortableLuminaFile(proj);
-      showToast?.('success', 'Export Complete', `Saved "${proj.name}.lumina"`);
-    } catch (err: any) {
-      showToast?.('error', 'Export Failed', err.message || 'Unable to package project.');
+      showToast?.('success', 'Export Complete', `Saved ${proj.name}.lumina`);
+    } catch (err) {
+      console.error(err);
+      showToast?.('error', 'Export Failed', 'Could not export project package.');
     }
   };
 
-  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setIsImporting(true);
     try {
-      showToast?.('info', 'Importing Project', `Unpacking ${file.name}...`);
       const imported = await importPortableLuminaFile(file);
-      await loadProjects();
-      showToast?.('success', 'Project Imported', `Restored "${imported.name}" into workspace.`);
+      await saveLuminaProject(imported);
+      setProjectsList((prev) => [imported, ...prev]);
+      showToast?.('success', 'Package Imported', `Imported "${imported.name}".`);
       onOpenProject(imported);
     } catch (err: any) {
-      showToast?.('error', 'Import Failed', err.message || 'Invalid .lumina file.');
+      console.error(err);
+      showToast?.('error', 'Import Failed', err?.message || 'Invalid .lumina project package.');
     } finally {
       setIsImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  // Filter & Sort
+  // Filter and sort
   const filteredProjects = useMemo(() => {
     let list = projectsList.filter((p) =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    if (selectedTag !== 'all') {
-      if (selectedTag === 'raw') {
-        list = list.filter((p) => p.image?.rawMetadata?.isRaw);
-      } else if (selectedTag === 'edited') {
-        list = list.filter((p) => (p.masks && p.masks.length > 0) || p.activePresetId);
-      }
+    if (selectedTag === 'raw') {
+      list = list.filter((p) => p.image?.rawMetadata?.isRaw);
+    } else if (selectedTag === 'edited') {
+      list = list.filter((p) => p.updatedAt && p.updatedAt > p.createdAt);
     }
 
-    list.sort((a, b) => {
+    return list.sort((a, b) => {
       if (sortBy === 'updated_desc') return (b.updatedAt || 0) - (a.updatedAt || 0);
       if (sortBy === 'updated_asc') return (a.updatedAt || 0) - (b.updatedAt || 0);
       if (sortBy === 'created_desc') return (b.createdAt || 0) - (a.createdAt || 0);
       if (sortBy === 'name_asc') return a.name.localeCompare(b.name);
       return 0;
     });
-
-    return list;
   }, [projectsList, searchQuery, selectedTag, sortBy]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#000000] p-4 sm:p-8 space-y-6 select-none text-white font-sans">
-      {/* Hidden file input for .lumina import */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".lumina,.json"
-        className="hidden"
-        onChange={handleFileInputChange}
-      />
-
-      {/* Top Header Banner: Strict Monochrome */}
-      <div className="p-6 rounded-2xl bg-[#080808] border border-[#222222] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#141414] text-[#CCCCCC] border border-[#2C2C2C] uppercase tracking-wider flex items-center gap-1.5">
-              <FolderOpen className="w-3 h-3 text-[#CCCCCC]" />
-              <span>PROJECT VAULT</span>
-            </span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#141414] text-[#999999] border border-[#222222]">
-              {projectsList.length} Saved Projects
-            </span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Projects Workspace
+    <div className="flex-1 overflow-y-auto bg-[#050505] text-[#E6E3DE] p-6 sm:p-10 space-y-8 select-none font-sans">
+      {/* Top Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[rgba(230,227,222,0.08)] pb-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#E6E3DE] flex items-center gap-2.5">
+            <FolderOpen className="w-6 h-6 text-[#7A0F18]" />
+            <span>Projects & Archives</span>
           </h1>
-          <p className="text-xs text-[#999999]">
-            Non-destructive local storage with full undo/redo stacks, layer trees, and color grade history.
+          <p className="text-xs text-[rgba(230,227,222,0.70)] mt-1">
+            Local browser workspace database with lossless portable package (.lumina) export/import.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+        <div className="flex items-center gap-2">
+          {/* Storage quota button */}
+          <button
+            onClick={() => setIsStorageModalOpen(true)}
+            className="p-2 rounded-lg text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] bg-[#050505] hover:bg-[rgba(230,227,222,0.06)] border border-[rgba(230,227,222,0.12)] hover:border-[#7A0F18] transition-colors"
+            title="Inspect IndexedDB Storage Quota"
+          >
+            <HardDrive className="w-4 h-4" />
+          </button>
+
+          {/* Import Portable Package */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
-            className="px-3 py-2 rounded-lg bg-[#141414] hover:bg-[#181818] border border-[#222222] text-[#CCCCCC] hover:text-white text-xs font-medium flex items-center gap-2 transition-colors active:scale-98"
+            className="px-3 py-2 rounded-lg bg-[#050505] hover:bg-[rgba(230,227,222,0.06)] border border-[rgba(230,227,222,0.12)] hover:border-[#7A0F18] text-[#E6E3DE] text-xs font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
           >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Import .lumina</span>
+            <Upload className="w-4 h-4 text-[#7A0F18]" />
+            <span>{isImporting ? 'Importing...' : 'Import .lumina'}</span>
           </button>
-
-          <button
-            onClick={() => setIsStorageModalOpen(true)}
-            className="px-3 py-2 rounded-lg bg-[#141414] hover:bg-[#181818] border border-[#222222] text-[#CCCCCC] hover:text-white text-xs font-medium flex items-center gap-2 transition-colors active:scale-98"
-          >
-            <HardDrive className="w-3.5 h-3.5" />
-            <span>Storage Quota</span>
-          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".lumina,.json"
+            onChange={handleImportFileSelected}
+            className="hidden"
+          />
 
           <button
             onClick={onNewProject}
-            className="px-4 py-2 rounded-lg bg-white hover:bg-[#CCCCCC] text-black text-xs font-semibold flex items-center gap-2 transition-colors active:scale-98 shadow-sm"
+            className="px-4 py-2 rounded-lg bg-[#7A0F18] hover:bg-[#8F141E] text-[#E6E3DE] text-xs font-semibold flex items-center gap-2 transition-colors active:scale-98 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>+ New Project</span>
@@ -249,16 +235,16 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
       </div>
 
       {/* Control Bar: Search, Filters, Sort, View Toggle */}
-      <div className="p-3 rounded-xl bg-[#080808] border border-[#222222] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="p-3 rounded-xl bg-[#050505] border border-[rgba(230,227,222,0.12)] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-1">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#666666]" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[rgba(230,227,222,0.45)]" />
             <input
               type="text"
               placeholder="Search projects by name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#101010] border border-[#222222] text-xs text-white placeholder-[#666666] focus:border-[#444444] focus:outline-none"
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#050505] border border-[rgba(230,227,222,0.12)] focus:border-[#7A0F18] text-xs text-[#E6E3DE] placeholder-[rgba(230,227,222,0.45)] focus:outline-none"
             />
           </div>
 
@@ -267,8 +253,8 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
               onClick={() => setSelectedTag('all')}
               className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                 selectedTag === 'all'
-                  ? 'bg-[#181818] text-white border border-[#2C2C2C]'
-                  : 'text-[#999999] hover:text-white'
+                  ? 'bg-[#7A0F18] text-[#E6E3DE] border border-[#7A0F18]'
+                  : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE]'
               }`}
             >
               All
@@ -277,8 +263,8 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
               onClick={() => setSelectedTag('raw')}
               className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                 selectedTag === 'raw'
-                  ? 'bg-[#181818] text-white border border-[#2C2C2C]'
-                  : 'text-[#999999] hover:text-white'
+                  ? 'bg-[#7A0F18] text-[#E6E3DE] border border-[#7A0F18]'
+                  : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE]'
               }`}
             >
               RAW
@@ -287,8 +273,8 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
               onClick={() => setSelectedTag('edited')}
               className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                 selectedTag === 'edited'
-                  ? 'bg-[#181818] text-white border border-[#2C2C2C]'
-                  : 'text-[#999999] hover:text-white'
+                  ? 'bg-[#7A0F18] text-[#E6E3DE] border border-[#7A0F18]'
+                  : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE]'
               }`}
             >
               Edited
@@ -297,12 +283,12 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 self-end md:self-auto">
-          <div className="flex items-center gap-1 text-xs text-[#999999]">
-            <ArrowUpDown className="w-3.5 h-3.5 text-[#666666]" />
+          <div className="flex items-center gap-1 text-xs text-[rgba(230,227,222,0.70)]">
+            <ArrowUpDown className="w-3.5 h-3.5 text-[rgba(230,227,222,0.45)]" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="bg-[#101010] border border-[#222222] rounded px-2 py-1 text-xs text-white focus:outline-none"
+              className="bg-[#050505] border border-[rgba(230,227,222,0.12)] rounded px-2 py-1 text-xs text-[#E6E3DE] focus:outline-none"
             >
               <option value="updated_desc">Recently Modified</option>
               <option value="updated_asc">Oldest Modified</option>
@@ -311,11 +297,11 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
             </select>
           </div>
 
-          <div className="flex items-center border border-[#222222] rounded-lg bg-[#101010] p-0.5">
+          <div className="flex items-center border border-[rgba(230,227,222,0.12)] rounded-lg bg-[#050505] p-0.5">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded ${
-                viewMode === 'grid' ? 'bg-[#181818] text-white' : 'text-[#666666] hover:text-white'
+                viewMode === 'grid' ? 'bg-[#7A0F18] text-[#E6E3DE]' : 'text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE]'
               }`}
               title="Grid View"
             >
@@ -324,7 +310,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
             <button
               onClick={() => setViewMode('list')}
               className={`p-1.5 rounded ${
-                viewMode === 'list' ? 'bg-[#181818] text-white' : 'text-[#666666] hover:text-white'
+                viewMode === 'list' ? 'bg-[#7A0F18] text-[#E6E3DE]' : 'text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE]'
               }`}
               title="List View"
             >
@@ -336,17 +322,17 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
 
       {/* Projects Grid or List View */}
       {filteredProjects.length === 0 ? (
-        <div className="p-12 rounded-2xl bg-[#080808] border border-[#222222] text-center space-y-3">
-          <FolderOpen className="w-8 h-8 text-[#444444] mx-auto" />
+        <div className="p-12 rounded-2xl bg-[#050505] border border-[rgba(230,227,222,0.12)] text-center space-y-3">
+          <FolderOpen className="w-8 h-8 text-[rgba(230,227,222,0.45)] mx-auto" />
           <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-white">No matching projects found</h3>
-            <p className="text-xs text-[#666666]">
+            <h3 className="text-sm font-semibold text-[#E6E3DE]">No matching projects found</h3>
+            <p className="text-xs text-[rgba(230,227,222,0.70)]">
               Try adjusting your search query or create a new project.
             </p>
           </div>
           <button
             onClick={onNewProject}
-            className="px-4 py-2 rounded-lg bg-white text-black text-xs font-semibold inline-flex items-center gap-2"
+            className="px-4 py-2 rounded-lg bg-[#7A0F18] hover:bg-[#8F141E] text-[#E6E3DE] text-xs font-semibold inline-flex items-center gap-2"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create New Project</span>
@@ -362,34 +348,34 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
               <div
                 key={proj.id}
                 onClick={() => onOpenProject(proj)}
-                className={`group p-3.5 rounded-xl bg-[#080808] border transition-colors cursor-pointer flex flex-col justify-between space-y-3 ${
+                className={`group p-3.5 rounded-xl bg-[#050505] border transition-colors cursor-pointer flex flex-col justify-between space-y-3 ${
                   isActive
-                    ? 'border-[#CCCCCC] ring-1 ring-[#CCCCCC]/20'
-                    : 'border-[#222222] hover:border-[#444444]'
+                    ? 'border-[#7A0F18] ring-1 ring-[#7A0F18]/50'
+                    : 'border-[rgba(230,227,222,0.12)] hover:border-[#7A0F18]'
                 }`}
               >
                 {/* Thumbnail Tile */}
-                <div className="w-full aspect-4/3 rounded-lg bg-[#141414] border border-[#181818] overflow-hidden relative">
+                <div className="w-full aspect-4/3 rounded-lg bg-[#050505] border border-[rgba(230,227,222,0.08)] overflow-hidden relative">
                   {proj.image?.originalUrl ? (
                     <img
                       src={proj.image.originalUrl}
                       alt={proj.name}
-                      className="w-full h-full object-cover grayscale contrast-105 group-hover:scale-102 transition-transform duration-200"
+                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-200"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[#666666]">
+                    <div className="w-full h-full flex items-center justify-center text-[rgba(230,227,222,0.45)]">
                       <FileImage className="w-8 h-8" />
                     </div>
                   )}
 
                   {isActive && (
-                    <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-white text-black uppercase">
+                    <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-[#7A0F18] text-[#E6E3DE] uppercase">
                       ACTIVE
                     </span>
                   )}
 
                   {proj.image?.rawMetadata?.isRaw && (
-                    <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-black/80 text-white border border-[#444444]">
+                    <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-[#050505]/90 text-[#E6E3DE] border border-[rgba(230,227,222,0.20)]">
                       RAW
                     </span>
                   )}
@@ -404,13 +390,13 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                         value={editNameValue}
                         onChange={(e) => setEditNameValue(e.target.value)}
                         autoFocus
-                        className="flex-1 bg-[#141414] border border-[#444444] rounded px-2 py-0.5 text-xs text-white focus:outline-none"
+                        className="flex-1 bg-[#050505] border border-[#7A0F18] rounded px-2 py-0.5 text-xs text-[#E6E3DE] focus:outline-none"
                       />
                       <button
                         type="submit"
-                        className="p-1 text-[#CCCCCC] hover:text-white"
+                        className="p-1 text-[#E6E3DE] hover:text-[#E6E3DE]"
                       >
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-3.5 h-3.5 text-[#7A0F18]" />
                       </button>
                       <button
                         type="button"
@@ -418,19 +404,19 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                           e.stopPropagation();
                           setEditingId(null);
                         }}
-                        className="p-1 text-[#666666] hover:text-white"
+                        className="p-1 text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE]"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </form>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-semibold text-white truncate flex-1 group-hover:text-[#CCCCCC]">
+                      <h3 className="text-xs font-semibold text-[#E6E3DE] truncate flex-1 group-hover:text-[#E6E3DE]">
                         {proj.name}
                       </h3>
                       <button
                         onClick={(e) => handleStartRename(proj, e)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-[#666666] hover:text-white transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE] transition-opacity"
                         title="Rename Project"
                       >
                         <Edit3 className="w-3 h-3" />
@@ -438,7 +424,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-[10px] text-[#666666] font-mono">
+                  <div className="flex items-center justify-between text-[10px] text-[rgba(230,227,222,0.45)] font-mono">
                     <span>
                       {proj.image?.width && proj.image?.height
                         ? `${proj.image.width}×${proj.image.height}`
@@ -456,18 +442,18 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                 </div>
 
                 {/* Bottom Action Strip */}
-                <div className="pt-2 border-t border-[#181818] flex items-center justify-between">
+                <div className="pt-2 border-t border-[rgba(230,227,222,0.08)] flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <button
                       onClick={(e) => handleDuplicateProject(proj, e)}
-                      className="p-1.5 rounded hover:bg-[#141414] text-[#666666] hover:text-white transition-colors"
+                      className="p-1.5 rounded hover:bg-[rgba(230,227,222,0.06)] text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE] transition-colors"
                       title="Duplicate Project"
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={(e) => handleExportProject(proj, e)}
-                      className="p-1.5 rounded hover:bg-[#141414] text-[#666666] hover:text-white transition-colors"
+                      className="p-1.5 rounded hover:bg-[rgba(230,227,222,0.06)] text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE] transition-colors"
                       title="Export .lumina package"
                     >
                       <Download className="w-3.5 h-3.5" />
@@ -475,7 +461,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                     {!isActive && (
                       <button
                         onClick={(e) => handleDeleteProject(proj.id, e)}
-                        className="p-1.5 rounded hover:bg-[#141414] text-[#666666] hover:text-white transition-colors"
+                        className="p-1.5 rounded hover:bg-[rgba(230,227,222,0.06)] text-[rgba(230,227,222,0.45)] hover:text-[#7A0F18] transition-colors"
                         title="Delete Project"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -483,9 +469,9 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                     )}
                   </div>
 
-                  <span className="text-[10px] font-medium text-[#999999] group-hover:text-white flex items-center gap-1">
+                  <span className="text-[10px] font-medium text-[rgba(230,227,222,0.70)] group-hover:text-[#E6E3DE] flex items-center gap-1">
                     <span>Open</span>
-                    <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-3 h-3 text-[#7A0F18] group-hover:translate-x-0.5 transition-transform" />
                   </span>
                 </div>
               </div>
@@ -494,10 +480,10 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         </div>
       ) : (
         /* List View */
-        <div className="rounded-xl bg-[#080808] border border-[#222222] overflow-hidden">
+        <div className="rounded-xl bg-[#050505] border border-[rgba(230,227,222,0.12)] overflow-hidden">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#222222] text-[#666666] font-mono text-[10px] uppercase bg-[#101010]">
+              <tr className="border-b border-[rgba(230,227,222,0.08)] text-[rgba(230,227,222,0.45)] font-mono text-[10px] uppercase bg-[#050505]">
                 <th className="py-2.5 px-4">Project</th>
                 <th className="py-2.5 px-4">Resolution</th>
                 <th className="py-2.5 px-4">Format</th>
@@ -505,65 +491,65 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                 <th className="py-2.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#181818]">
+            <tbody className="divide-y divide-[rgba(230,227,222,0.06)]">
               {filteredProjects.map((proj) => {
                 const isActive = proj.id === currentProject.id;
                 return (
                   <tr
                     key={proj.id}
                     onClick={() => onOpenProject(proj)}
-                    className="hover:bg-[#101010] cursor-pointer transition-colors"
+                    className="hover:bg-[rgba(230,227,222,0.04)] cursor-pointer transition-colors"
                   >
                     <td className="py-3 px-4 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded bg-[#141414] border border-[#222222] overflow-hidden shrink-0">
+                      <div className="w-9 h-9 rounded bg-[#050505] border border-[rgba(230,227,222,0.12)] overflow-hidden shrink-0">
                         {proj.image?.originalUrl ? (
                           <img
                             src={proj.image.originalUrl}
                             alt=""
-                            className="w-full h-full object-cover grayscale"
+                            className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[#666666]">
+                          <div className="w-full h-full flex items-center justify-center text-[rgba(230,227,222,0.45)]">
                             <FileImage className="w-4 h-4" />
                           </div>
                         )}
                       </div>
                       <div>
-                        <div className="font-medium text-white flex items-center gap-2">
+                        <div className="font-medium text-[#E6E3DE] flex items-center gap-2">
                           <span>{proj.name}</span>
                           {isActive && (
-                            <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-white text-black font-bold">
+                            <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-[#7A0F18] text-[#E6E3DE] font-bold">
                               ACTIVE
                             </span>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-[#999999] font-mono text-[11px]">
+                    <td className="py-3 px-4 text-[rgba(230,227,222,0.70)] font-mono text-[11px]">
                       {proj.image?.width && proj.image?.height
                         ? `${proj.image.width}×${proj.image.height}`
                         : '—'}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-[#141414] text-[#CCCCCC] border border-[#222222]">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-[#050505] text-[rgba(230,227,222,0.70)] border border-[rgba(230,227,222,0.12)]">
                         {proj.image?.rawMetadata?.isRaw ? 'RAW' : proj.image?.format?.toUpperCase() || 'JPEG'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-[#666666] font-mono text-[11px]">
+                    <td className="py-3 px-4 text-[rgba(230,227,222,0.45)] font-mono text-[11px]">
                       {new Date(proj.updatedAt || Date.now()).toLocaleString()}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="inline-flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={(e) => handleDuplicateProject(proj, e)}
-                          className="p-1 text-[#666666] hover:text-white"
+                          className="p-1 text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE]"
                           title="Duplicate"
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={(e) => handleExportProject(proj, e)}
-                          className="p-1 text-[#666666] hover:text-white"
+                          className="p-1 text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE]"
                           title="Export Package"
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -571,7 +557,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                         {!isActive && (
                           <button
                             onClick={(e) => handleDeleteProject(proj.id, e)}
-                            className="p-1 text-[#666666] hover:text-white"
+                            className="p-1 text-[rgba(230,227,222,0.45)] hover:text-[#7A0F18]"
                             title="Delete"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

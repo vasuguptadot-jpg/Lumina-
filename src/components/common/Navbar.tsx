@@ -1,3 +1,8 @@
+/**
+ * Lumina Studio Pro — Main Application Navbar
+ * Strict 3-Color Hierarchy: #050505 (Black), #7A0F18 (Dark Red), #E6E3DE (Greyish White).
+ */
+
 import React from 'react';
 import {
   Sparkles,
@@ -19,9 +24,6 @@ import {
   Share2,
   Camera,
   Users,
-  Eye,
-  MessageSquare,
-  Shield,
   ShieldCheck,
   Lock,
   Package,
@@ -76,7 +78,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onProjectNameChange,
   onOpenCameraStudio,
   onOpenCollaboration,
-  onOpenClientReview,
   onOpenPlugins,
   onOpenAutomation,
   onOpenDeveloperPlatform,
@@ -86,26 +87,24 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenGroqSettings,
 }) => {
   return (
-    <header className="h-14 bg-slate-950/90 border-b border-slate-800/80 px-4 flex items-center justify-between backdrop-blur-md z-30 select-none">
+    <header className="h-12 bg-[#050505] border-b border-[rgba(230,227,222,0.08)] px-4 flex items-center justify-between z-30 select-none text-[#E6E3DE]">
       {/* Brand & Project Info */}
       <div className="flex items-center gap-3 min-w-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-amber-400 p-[1.5px] shadow-lg shadow-indigo-500/20">
-            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-amber-300" />
-            </div>
+          <div className="w-7 h-7 rounded-lg bg-[#7A0F18] flex items-center justify-center font-mono font-bold text-xs text-[#E6E3DE]">
+            L
           </div>
           <div className="hidden sm:block">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-sm tracking-tight text-white">Lumina</span>
-              <span className="text-[10px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30">
+              <span className="font-bold text-sm tracking-tight text-[#E6E3DE]">Lumina</span>
+              <span className="text-[10px] uppercase font-mono font-bold px-1.5 py-0.2 rounded bg-[rgba(230,227,222,0.06)] text-[rgba(230,227,222,0.70)] border border-[rgba(230,227,222,0.12)]">
                 PRO
               </span>
             </div>
           </div>
         </div>
 
-        <div className="h-4 w-[1px] bg-slate-800 hidden md:block" />
+        <div className="h-4 w-[1px] bg-[rgba(230,227,222,0.08)] hidden md:block" />
 
         {/* Project Name & Cloud Sync status */}
         {project && activeTab === 'editor' && (
@@ -114,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="text"
               value={project.name}
               onChange={(e) => onProjectNameChange?.(e.target.value)}
-              className="bg-transparent hover:bg-slate-900/60 focus:bg-slate-900 text-xs text-slate-200 font-medium px-2 py-1 rounded border border-transparent focus:border-slate-700 outline-none max-w-[140px] sm:max-w-[200px] truncate transition-colors"
+              className="bg-transparent hover:bg-[rgba(230,227,222,0.04)] focus:bg-[#050505] text-xs text-[#E6E3DE] font-medium px-2 py-1 rounded border border-transparent focus:border-[#7A0F18] outline-none max-w-[140px] sm:max-w-[200px] truncate transition-colors font-mono"
               title="Click to rename project"
             />
 
@@ -123,15 +122,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onOpenCloudModal}
               className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors ${
                 project.cloudSyncStatus === 'synced'
-                  ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400 hover:bg-emerald-900/40'
+                  ? 'bg-[rgba(230,227,222,0.04)] border-[rgba(230,227,222,0.15)] text-[#E6E3DE]'
                   : project.cloudSyncStatus === 'syncing'
-                  ? 'bg-amber-950/40 border-amber-500/30 text-amber-400 hover:bg-amber-900/40 animate-pulse'
-                  : 'bg-slate-900 border-slate-700/80 text-slate-400 hover:bg-slate-800'
+                  ? 'bg-[rgba(122,15,24,0.30)] border-[#7A0F18] text-[#E6E3DE] animate-pulse'
+                  : 'bg-[#050505] border-[rgba(230,227,222,0.10)] text-[rgba(230,227,222,0.45)]'
               }`}
               title="Cloud Sync Status - Click to manage"
             >
-              {project.cloudSyncStatus === 'synced' && <CloudCheck className="w-3.5 h-3.5" />}
-              {project.cloudSyncStatus === 'syncing' && <RefreshCw className="w-3 h-3 animate-spin" />}
+              {project.cloudSyncStatus === 'synced' && <CloudCheck className="w-3.5 h-3.5 text-[#E6E3DE]" />}
+              {project.cloudSyncStatus === 'syncing' && <RefreshCw className="w-3 h-3 text-[#7A0F18] animate-spin" />}
               {project.cloudSyncStatus === 'offline' && <Cloud className="w-3.5 h-3.5 opacity-60" />}
               {project.cloudSyncStatus === 'local-only' && <Laptop className="w-3 h-3" />}
               <span className="hidden sm:inline">
@@ -149,26 +148,26 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Main Navigation Tabs */}
-      <nav className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800/80">
+      <nav className="flex items-center gap-1 bg-[#050505] p-1 rounded-lg border border-[rgba(230,227,222,0.10)]">
         <button
           onClick={() => onSelectTab('library')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
             activeTab === 'library'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-[#7A0F18] text-[#E6E3DE] font-semibold'
+              : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)]'
           }`}
           title="AI Photo Search & Library Management"
         >
-          <Compass className="w-3.5 h-3.5 text-amber-300" />
-          <span>AI Library</span>
+          <Compass className="w-3.5 h-3.5" />
+          <span>Library</span>
         </button>
 
         <button
           onClick={() => onSelectTab('editor')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
             activeTab === 'editor'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-[#7A0F18] text-[#E6E3DE] font-semibold'
+              : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)]'
           }`}
         >
           <Sliders className="w-3.5 h-3.5" />
@@ -177,22 +176,22 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={() => onSelectTab('batch')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
             activeTab === 'batch'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-[#7A0F18] text-[#E6E3DE] font-semibold'
+              : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)]'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>Batch Studio</span>
+          <span>Batch</span>
         </button>
 
         <button
           onClick={() => onSelectTab('projects')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
             activeTab === 'projects'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-[#7A0F18] text-[#E6E3DE] font-semibold'
+              : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)]'
           }`}
         >
           <FolderOpen className="w-3.5 h-3.5" />
@@ -201,10 +200,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={() => onSelectTab('samples')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
             activeTab === 'samples'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+              ? 'bg-[#7A0F18] text-[#E6E3DE] font-semibold'
+              : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)]'
           }`}
         >
           <ImageIcon className="w-3.5 h-3.5" />
@@ -220,19 +219,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onAutoEnhance}
               disabled={isAutoEnhancing}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-indigo-500/20 text-amber-300 border border-amber-500/40 hover:border-amber-400 hover:bg-amber-500/30 transition-all shadow-sm disabled:opacity-50"
-              title="1-Click AI Smart Auto-Enhance (Gemini)"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#7A0F18] hover:bg-[#8F141E] text-[#E6E3DE] transition-all disabled:opacity-50"
+              title="1-Click AI Smart Auto-Enhance"
             >
               <Wand2 className={`w-3.5 h-3.5 ${isAutoEnhancing ? 'animate-spin' : ''}`} />
-              <span className="hidden lg:inline">{isAutoEnhancing ? 'Enhancing...' : 'AI Auto-Tune'}</span>
+              <span className="hidden lg:inline">{isAutoEnhancing ? 'Enhancing...' : 'Auto-Tune'}</span>
             </button>
 
             {/* Undo / Redo */}
-            <div className="flex items-center bg-slate-900/80 rounded-lg border border-slate-800 p-0.5">
+            <div className="flex items-center bg-[#050505] rounded-lg border border-[rgba(230,227,222,0.12)] p-0.5">
               <button
                 onClick={onUndo}
                 disabled={!canUndo}
-                className="p-1.5 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:hover:text-slate-400 transition-colors"
+                className="p-1.5 rounded text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.08)] disabled:opacity-30 disabled:hover:text-[rgba(230,227,222,0.45)] transition-colors"
                 title="Undo (Ctrl+Z)"
               >
                 <Undo2 className="w-3.5 h-3.5" />
@@ -240,14 +239,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onRedo}
                 disabled={!canRedo}
-                className="p-1.5 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:hover:text-slate-400 transition-colors"
+                className="p-1.5 rounded text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.08)] disabled:opacity-30 disabled:hover:text-[rgba(230,227,222,0.45)] transition-colors"
                 title="Redo (Ctrl+Y)"
               >
                 <Redo2 className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={onReset}
-                className="p-1.5 rounded text-slate-400 hover:text-rose-400 transition-colors"
+                className="p-1.5 rounded text-[rgba(230,227,222,0.70)] hover:text-[#7A0F18] transition-colors"
                 title="Reset All Adjustments"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -257,140 +256,65 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Shortcuts Help */}
             <button
               onClick={onOpenShortcuts}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors hidden md:block"
+              className="p-2 rounded-lg text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)] transition-colors hidden md:block"
               title="Keyboard Shortcuts (?)"
             >
               <Keyboard className="w-4 h-4" />
             </button>
 
-            {/* Groq AI & BYOK Management Button */}
-            {onOpenGroqSettings && (
-              <button
-                onClick={onOpenGroqSettings}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 border border-orange-500/40 hover:border-orange-400 text-orange-300 shadow-md shadow-orange-950/40 transition-all active:scale-95"
-                title="Groq AI Integration (BYOK Key Management, LPU Inference, Model Selection, Token Monitor & Security Policies)"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                <span className="hidden sm:inline">Groq AI</span>
-              </button>
-            )}
-
-            {/* GPU Performance Engine Button */}
+            {/* Hardware / Engine Telemetry */}
             {onOpenPerformanceMonitor && (
               <button
                 onClick={onOpenPerformanceMonitor}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-950/80 border border-amber-500/40 hover:border-amber-400 text-amber-300 shadow-md shadow-amber-950/40 transition-all active:scale-95"
-                title="Hardware Acceleration & Compute Engine (GPU WebGL/WebGPU, Multithreading, Tile Frustum Culling, Proxy Previews, Memory Cache)"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono bg-[#050505] border border-[rgba(230,227,222,0.12)] hover:border-[#7A0F18] text-[#E6E3DE] transition-all"
+                title="Hardware & GPU Monitor"
               >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">GPU 60fps</span>
+                <Zap className="w-3.5 h-3.5 text-[#7A0F18]" />
+                <span className="hidden sm:inline">GPU</span>
               </button>
             )}
 
-            {/* Security & Privacy Hub Button */}
+            {/* Security Button */}
             {onOpenSecurityGovernance && (
               <button
                 onClick={onOpenSecurityGovernance}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-950/80 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 shadow-md shadow-emerald-950/40 transition-all active:scale-95"
-                title="Security & Privacy Governance (Local Compute, E2EE Vault, EXIF Sanitizer, Face Protection, AI Consent)"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono bg-[#050505] border border-[rgba(230,227,222,0.12)] hover:border-[#7A0F18] text-[#E6E3DE] transition-all"
+                title="Security & Privacy Governance"
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <ShieldCheck className="w-3.5 h-3.5 text-[#7A0F18]" />
                 <span className="hidden sm:inline">Security</span>
               </button>
             )}
 
-            {/* Lock Vault Button */}
+            {/* Lock Vault */}
             {onLockVault && (
               <button
                 onClick={onLockVault}
-                className="p-2 rounded-lg text-slate-400 hover:text-amber-300 hover:bg-slate-900 transition-colors"
+                className="p-2 rounded-lg text-[rgba(230,227,222,0.70)] hover:text-[#7A0F18] hover:bg-[rgba(230,227,222,0.06)] transition-colors"
                 title="Lock Studio Vault"
               >
                 <Lock className="w-4 h-4" />
               </button>
             )}
 
-            {/* Team & Collaboration Button */}
+            {/* Collaborate */}
             {onOpenCollaboration && (
               <button
                 onClick={onOpenCollaboration}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-950/80 border border-indigo-500/40 hover:border-indigo-400 hover:bg-indigo-900/80 text-indigo-300 shadow-md shadow-indigo-950/40 transition-all active:scale-95"
-                title="Manage Collaborators, Comments, Approvals, & Shared Links"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#050505] border border-[rgba(230,227,222,0.12)] hover:border-[#7A0F18] text-[#E6E3DE] transition-all"
+                title="Manage Collaborators"
               >
-                <Users className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="hidden sm:inline">Collaborate</span>
-                {((project as any)?.approvalStatus && (project as any).approvalStatus !== 'draft') && (
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                )}
+                <Users className="w-3.5 h-3.5 text-[#E6E3DE]" />
+                <span className="hidden sm:inline">Share</span>
               </button>
             )}
 
-            {/* Developer Hub & API Platform Button */}
-            {onOpenDeveloperPlatform && (
-              <button
-                onClick={onOpenDeveloperPlatform}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-cyan-900/80 to-blue-900/80 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 shadow-md shadow-cyan-950/40 transition-all active:scale-95"
-                title="Open Developer Platform (Headless API, TypeScript & Python SDKs, Custom AI Models, Webhooks, Cloud Render)"
-              >
-                <Code2 className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="hidden sm:inline">Developer API</span>
-              </button>
-            )}
-
-            {/* Automation & 8-Stage Workflow Engine Button */}
-            {onOpenAutomation && (
-              <button
-                onClick={onOpenAutomation}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-indigo-500/20 border border-amber-500/40 hover:border-amber-400 text-amber-300 shadow-md shadow-amber-950/40 transition-all active:scale-95"
-                title="Open Automation Workflow Engine (Import → AI analysis → Color correction → Noise reduction → Preset → Watermark → Resize → Export)"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Automation</span>
-              </button>
-            )}
-
-            {/* Plugin Platform & Marketplace Hub Button */}
-            {onOpenPlugins && (
-              <button
-                onClick={onOpenPlugins}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-purple-900/80 to-indigo-900/80 border border-purple-500/40 hover:border-purple-400 text-purple-300 shadow-md shadow-purple-950/40 transition-all active:scale-95"
-                title="Plugin & Extension Studio (Custom Shaders, 3D LUTs, AI Models, Brushes, Fonts, Templates & Scripts)"
-              >
-                <Package className="w-3.5 h-3.5 text-purple-400" />
-                <span className="hidden sm:inline">Plugins</span>
-              </button>
-            )}
-
-            {/* Pro Camera Studio Button */}
-            {onOpenCameraStudio && (
-              <button
-                onClick={onOpenCameraStudio}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 shadow-md shadow-amber-500/20 transition-all active:scale-95"
-                title="Open Pro Camera Studio (RAW Capture, Manual ISO, Shutter, Focus Peaking, HDR)"
-              >
-                <Camera className="w-3.5 h-3.5 text-slate-950" />
-                <span className="hidden sm:inline">Camera</span>
-              </button>
-            )}
-
-            {/* Social Media Optimizer Button */}
-            {onOpenSocialExport && (
-              <button
-                onClick={onOpenSocialExport}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white shadow-md shadow-pink-600/20 transition-all active:scale-95"
-                title="1-Click Social Media Optimizer (Instagram, YouTube, TikTok, X, Facebook, LinkedIn)"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Social Export</span>
-              </button>
-            )}
-
-            {/* Export High-Res Button */}
+            {/* Export Primary */}
             <button
               onClick={onOpenExport}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-md shadow-emerald-500/20 transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#7A0F18] hover:bg-[#8F141E] text-[#E6E3DE] transition-colors shadow-sm"
             >
-              <Download className="w-3.5 h-3.5 text-slate-950" />
+              <Download className="w-3.5 h-3.5" />
               <span>Export</span>
             </button>
           </>

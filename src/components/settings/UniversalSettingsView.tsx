@@ -27,6 +27,7 @@ import { inputManager, ShortcutDefinition } from '../../services/inputManager';
 import { hardwareDetector, HardwareProfile } from '../../services/hardwareDetector';
 import { User } from 'firebase/auth';
 import { WorkspaceConfig } from '../../types/workflow';
+import { AIProviderGatewayView } from './AIProviderGatewayView';
 
 interface UniversalSettingsViewProps {
   currentUser?: User | null;
@@ -37,6 +38,7 @@ interface UniversalSettingsViewProps {
 
 type SettingsTab =
   | 'general'
+  | 'ai_providers'
   | 'performance'
   | 'shortcuts'
   | 'storage'
@@ -121,6 +123,18 @@ export const UniversalSettingsView: React.FC<UniversalSettingsViewProps> = ({
         >
           <Settings className="w-4 h-4" />
           <span>General</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ai_providers')}
+          className={`flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+            activeTab === 'ai_providers'
+              ? 'bg-[#1A1A1A] text-white border border-[#333333]'
+              : 'hover:bg-[#111111] hover:text-white text-[#888888]'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>AI Providers</span>
         </button>
 
         <button
@@ -231,6 +245,11 @@ export const UniversalSettingsView: React.FC<UniversalSettingsViewProps> = ({
               </div>
             </div>
           </div>
+        )}
+
+        {/* AI PROVIDERS TAB */}
+        {activeTab === 'ai_providers' && (
+          <AIProviderGatewayView showToast={showToast} />
         )}
 
         {/* PERFORMANCE TAB */}

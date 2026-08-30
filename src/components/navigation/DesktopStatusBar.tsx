@@ -1,6 +1,8 @@
 /**
  * Lumina Studio Pro - Desktop & Tablet Native Status Bar
  * Displays canvas dimensions, color depth, active tool, zoom controls, and comparison triggers.
+ * 
+ * Strict 3-Color Hierarchy: #050505 (Black), #7A0F18 (Dark Red), #E6E3DE (Greyish White).
  */
 
 import React from 'react';
@@ -9,11 +11,6 @@ import {
   ZoomOut,
   Maximize,
   Eye,
-  Sliders,
-  Sparkles,
-  Layers,
-  Activity,
-  Check,
 } from 'lucide-react';
 import { Project } from '../../types/editor';
 
@@ -49,27 +46,27 @@ export const DesktopStatusBar: React.FC<DesktopStatusBarProps> = ({
   return (
     <footer
       id="lumina-desktop-statusbar"
-      className="hidden md:flex items-center justify-between h-7 bg-[#000000] border-t border-[#222222] px-3 select-none z-30 text-[11px] font-mono text-[#888888]"
+      className="hidden md:flex items-center justify-between h-7 bg-[#050505] border-t border-[rgba(230,227,222,0.08)] px-3 select-none z-30 text-[11px] font-mono text-[rgba(230,227,222,0.45)]"
     >
       {/* Left: Resolution, Color Depth, Profile */}
       <div className="flex items-center space-x-3">
-        <div className="flex items-center space-x-1.5 text-[#CCCCCC]">
+        <div className="flex items-center space-x-1.5 text-[#E6E3DE]">
           <span>
             {width} × {height} px
           </span>
-          <span className="text-[#555555]">({megapixels} MP)</span>
+          <span className="text-[rgba(230,227,222,0.45)]">({megapixels} MP)</span>
         </div>
 
-        <span className="text-[#333333]">•</span>
+        <span className="text-[rgba(230,227,222,0.15)]">•</span>
 
-        <div className="text-[#999999]">
+        <div className="text-[rgba(230,227,222,0.70)]">
           {project.isRaw ? 'RAW Bayer (32-bit Float)' : 'sRGB (8-bit UNorm)'}
         </div>
 
         {project.cameraInfo && (
           <>
-            <span className="text-[#333333]">•</span>
-            <div className="text-[#777777] truncate max-w-[140px]">
+            <span className="text-[rgba(230,227,222,0.15)]">•</span>
+            <div className="text-[rgba(230,227,222,0.45)] truncate max-w-[140px]">
               {project.cameraInfo.make} {project.cameraInfo.model}
             </div>
           </>
@@ -77,8 +74,8 @@ export const DesktopStatusBar: React.FC<DesktopStatusBarProps> = ({
       </div>
 
       {/* Center: Active Tool / Status */}
-      <div className="flex items-center space-x-2 text-[#AAAAAA]">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#888888]" />
+      <div className="flex items-center space-x-2 text-[rgba(230,227,222,0.70)]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#7A0F18]" />
         <span className="capitalize">
           {activeToolTab ? `Active Tool: ${activeToolTab.replace('-', ' ')}` : 'Ready'}
         </span>
@@ -92,22 +89,22 @@ export const DesktopStatusBar: React.FC<DesktopStatusBarProps> = ({
           title="Toggle Before/After Comparison (\)"
           className={`flex items-center space-x-1 px-1.5 py-0.5 rounded border transition-colors ${
             isComparing
-              ? 'bg-white text-black border-white'
-              : 'bg-[#111111] text-[#AAAAAA] border-[#2B2B2B] hover:text-white hover:border-[#444444]'
+              ? 'bg-[#7A0F18] text-[#E6E3DE] border-[#7A0F18]'
+              : 'bg-[rgba(230,227,222,0.04)] text-[rgba(230,227,222,0.70)] border-[rgba(230,227,222,0.10)] hover:text-[#E6E3DE] hover:border-[#7A0F18]'
           }`}
         >
           <Eye className="w-3 h-3" />
           <span className="text-[10px]">Compare</span>
         </button>
 
-        <span className="text-[#333333]">•</span>
+        <span className="text-[rgba(230,227,222,0.15)]">•</span>
 
         {/* Zoom Controls */}
-        <div className="flex items-center space-x-1 bg-[#111111] border border-[#2B2B2B] rounded px-1 py-0.5">
+        <div className="flex items-center space-x-1 bg-[rgba(230,227,222,0.04)] border border-[rgba(230,227,222,0.10)] rounded px-1 py-0.5 text-[rgba(230,227,222,0.70)]">
           <button
             onClick={onZoomOut}
             title="Zoom Out (-)"
-            className="p-0.5 hover:text-white transition-colors"
+            className="p-0.5 hover:text-[#E6E3DE] transition-colors"
           >
             <ZoomOut className="w-3 h-3" />
           </button>
@@ -115,7 +112,7 @@ export const DesktopStatusBar: React.FC<DesktopStatusBarProps> = ({
           <button
             onClick={onZoomFit}
             title="Fit to Canvas"
-            className="px-1.5 text-[10px] text-white hover:underline"
+            className="px-1.5 text-[10px] text-[#E6E3DE] hover:underline font-mono"
           >
             {Math.round(zoomLevel * 100)}%
           </button>
@@ -123,7 +120,7 @@ export const DesktopStatusBar: React.FC<DesktopStatusBarProps> = ({
           <button
             onClick={onZoomIn}
             title="Zoom In (+)"
-            className="p-0.5 hover:text-white transition-colors"
+            className="p-0.5 hover:text-[#E6E3DE] transition-colors"
           >
             <ZoomIn className="w-3 h-3" />
           </button>
@@ -133,19 +130,19 @@ export const DesktopStatusBar: React.FC<DesktopStatusBarProps> = ({
         <div className="hidden lg:flex items-center space-x-1 text-[10px]">
           <button
             onClick={onZoomFit}
-            className="px-1 py-0.5 rounded hover:bg-[#222222] hover:text-white text-[#777777]"
+            className="px-1 py-0.5 rounded hover:bg-[rgba(230,227,222,0.08)] hover:text-[#E6E3DE] text-[rgba(230,227,222,0.45)]"
           >
             Fit
           </button>
           <button
             onClick={() => onSetZoom(1.0)}
-            className="px-1 py-0.5 rounded hover:bg-[#222222] hover:text-white text-[#777777]"
+            className="px-1 py-0.5 rounded hover:bg-[rgba(230,227,222,0.08)] hover:text-[#E6E3DE] text-[rgba(230,227,222,0.45)]"
           >
             100%
           </button>
           <button
             onClick={() => onSetZoom(2.0)}
-            className="px-1 py-0.5 rounded hover:bg-[#222222] hover:text-white text-[#777777]"
+            className="px-1 py-0.5 rounded hover:bg-[rgba(230,227,222,0.08)] hover:text-[#E6E3DE] text-[rgba(230,227,222,0.45)]"
           >
             200%
           </button>
@@ -155,7 +152,7 @@ export const DesktopStatusBar: React.FC<DesktopStatusBarProps> = ({
         <button
           onClick={onToggleFullscreen}
           title="Fullscreen (F)"
-          className="p-1 rounded text-[#777777] hover:text-white hover:bg-[#1A1A1A] transition-colors"
+          className="p-1 rounded text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)] transition-colors"
         >
           <Maximize className="w-3 h-3" />
         </button>

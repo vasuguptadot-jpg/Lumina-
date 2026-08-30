@@ -1,3 +1,8 @@
+/**
+ * Lumina Studio Pro — Editor Tool Tabs Navigation
+ * Strict 3-Color Hierarchy: #050505 (Black), #7A0F18 (Dark Red), #E6E3DE (Greyish White).
+ */
+
 import React, { useState } from 'react';
 import {
   Palette,
@@ -34,7 +39,6 @@ import {
   Zap,
   Code2,
   ShieldCheck,
-  ChevronDown,
 } from 'lucide-react';
 import { WorkflowStageId } from '../../types/workflow';
 import { UserSkillMode } from '../../types/navigation';
@@ -142,9 +146,9 @@ export const ToolTabs: React.FC<ToolTabsProps> = ({
   });
 
   return (
-    <div className="bg-zinc-950 border-b border-zinc-800 select-none">
+    <div className="bg-[#050505] border-b border-[rgba(230,227,222,0.08)] select-none">
       {/* Workflow Stage Tabs (Top Row) */}
-      <div className="flex items-center gap-1 px-2 pt-1 border-b border-zinc-850 overflow-x-auto scrollbar-none text-[11px] font-mono">
+      <div className="flex items-center gap-1 px-2 pt-1 border-b border-[rgba(230,227,222,0.06)] overflow-x-auto no-scrollbar text-[11px] font-mono">
         {WORKFLOW_GROUPS.map((group) => {
           const isGroupActive = selectedGroup === group.id;
           const containsActiveTab = group.tools.some((t) => t.id === activeTab);
@@ -161,8 +165,8 @@ export const ToolTabs: React.FC<ToolTabsProps> = ({
               }}
               className={`px-2.5 py-1 rounded-t border-t border-x transition-colors whitespace-nowrap ${
                 isGroupActive
-                  ? 'bg-zinc-900 text-zinc-100 font-semibold border-zinc-750'
-                  : 'bg-zinc-950 text-zinc-500 hover:text-zinc-300 border-transparent'
+                  ? 'bg-[#7A0F18] text-[#E6E3DE] font-semibold border-[#7A0F18]'
+                  : 'bg-[#050505] text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE] border-transparent'
               }`}
             >
               {group.label}
@@ -172,7 +176,7 @@ export const ToolTabs: React.FC<ToolTabsProps> = ({
       </div>
 
       {/* Specific Tools in Current Stage (Bottom Row) */}
-      <div className="flex items-center gap-0.5 px-2 py-1 overflow-x-auto scrollbar-none bg-zinc-900/60">
+      <div className="flex items-center gap-0.5 px-2 py-1 overflow-x-auto no-scrollbar bg-[#050505]">
         {visibleTools.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -183,14 +187,14 @@ export const ToolTabs: React.FC<ToolTabsProps> = ({
               onClick={() => onSelectTab(tab.id)}
               className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium whitespace-nowrap transition-colors ${
                 isActive
-                  ? 'bg-zinc-800 text-zinc-100 font-semibold border border-zinc-700'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/60'
+                  ? 'bg-[#7A0F18] text-[#E6E3DE] font-semibold border border-[#7A0F18]'
+                  : 'text-[rgba(230,227,222,0.70)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)]'
               }`}
             >
-              <Icon className="w-3.5 h-3.5 text-zinc-300" />
+              <Icon className="w-3.5 h-3.5 text-[#E6E3DE]" />
               <span>{tab.label}</span>
               {tab.badge && (
-                <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-zinc-950 text-zinc-400 border border-zinc-800">
+                <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-[#050505] text-[rgba(230,227,222,0.70)] border border-[rgba(230,227,222,0.12)]">
                   {tab.badge}
                 </span>
               )}

@@ -601,7 +601,7 @@ export function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#000000] text-white overflow-hidden font-sans select-none pb-12 lg:pb-0">
+    <div className="flex flex-col h-screen w-screen bg-[#050505] text-[#E6E3DE] overflow-hidden font-sans select-none pb-12 lg:pb-0">
       {/* 0. TOP DESKTOP MENU BAR (When on Desktop or Tablet) */}
       {layoutState.mode !== 'MOBILE' && (
         <DesktopMenuBar
@@ -714,7 +714,7 @@ export function App() {
         />
 
         {/* 2. MAIN APPLICATION CONTENT AREA */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#000000]">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#050505]">
           {/* OPTIONAL WORKFLOW STAGE BAR (Shown when in editor mode) */}
           {activeTab === 'editor' && (
             <WorkflowStageBar
@@ -763,6 +763,7 @@ export function App() {
               }}
               recentProjects={recentProjectsList}
               currentProject={project}
+              onOpenSearch={() => setIsSearchOpen(true)}
             />
           )}
 

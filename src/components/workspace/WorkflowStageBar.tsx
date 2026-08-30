@@ -1,3 +1,8 @@
+/**
+ * Lumina Studio Pro — Workflow Stage Navigation Bar
+ * Strict 3-Color Hierarchy: #050505 (Black), #7A0F18 (Dark Red), #E6E3DE (Greyish White).
+ */
+
 import React from 'react';
 import {
   Compass,
@@ -8,124 +13,95 @@ import {
   Sparkles,
   Type,
   Download,
-  ChevronRight,
   Settings2,
-  Layout,
 } from 'lucide-react';
-import {
-  WorkflowStageId,
-  WorkspaceConfig,
-} from '../../types/workflow';
-import {
-  WORKFLOW_STAGES,
-  WORKSPACE_PRESETS,
-} from '../../engine/workspaceEngine';
+import { WorkflowStageId, WorkspaceConfig } from '../../types/workflow';
+import { WORKFLOW_STAGES } from '../../engine/workspaceEngine';
 
 interface WorkflowStageBarProps {
   config: WorkspaceConfig;
   onSelectStage: (stage: WorkflowStageId) => void;
-  onOpenCustomizer: () => void;
-  onQuickPresetSelect?: (presetId: any) => void;
+  onOpenCustomizer?: () => void;
 }
+
+const STAGE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  Compass,
+  Sliders,
+  Focus,
+  Layers,
+  Bandage,
+  Sparkles,
+  Type,
+  Download,
+};
 
 export const WorkflowStageBar: React.FC<WorkflowStageBarProps> = ({
   config,
   onSelectStage,
   onOpenCustomizer,
 }) => {
-  // Ordered visible stages
-  const activeStages = config.stageOrder.filter((id) =>
-    config.visibleStages.includes(id)
-  );
-
-  const getStageIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Compass':
-        return Compass;
-      case 'Sliders':
-        return Sliders;
-      case 'Focus':
-        return Focus;
-      case 'Layers':
-        return Layers;
-      case 'Bandage':
-        return Bandage;
-      case 'Sparkles':
-        return Sparkles;
-      case 'Type':
-        return Type;
-      case 'Download':
-        return Download;
-      default:
-        return Sliders;
-    }
-  };
+  const visibleStages = (config?.visibleStages || [
+    'library',
+    'develop',
+    'select',
+    'mask',
+    'retouch',
+    'layers',
+    'ai',
+    'design',
+    'export',
+  ]).filter((id) => Boolean(WORKFLOW_STAGES[id]));
 
   return (
-    <div className="h-9 bg-[#050505] border-b border-[#2A2A2A] px-3 flex items-center justify-between select-none z-20 overflow-x-auto scrollbar-none font-sans">
-      {/* Stages Pipeline Flow */}
-      <div className="flex items-center gap-1 min-w-max">
-        <div className="flex items-center gap-1 mr-2 text-[10px] uppercase font-mono font-bold tracking-wider text-zinc-500 hidden xl:flex">
-          <span>Stage:</span>
-        </div>
-
-        {activeStages.map((stageId, index) => {
+    <nav
+      id="lumina-workflow-stage-bar"
+      aria-label="Workflow Stages"
+      className="h-8 bg-[#050505] border-b border-[rgba(230,227,222,0.08)] px-2 sm:px-4 flex items-center justify-between select-none z-20 text-[11px] font-mono"
+    >
+      <div className="flex items-center space-x-1 sm:space-x-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-full">
+        {visibleStages.map((stageId, idx) => {
           const stage = WORKFLOW_STAGES[stageId];
           if (!stage) return null;
-          const Icon = getStageIcon(stage.iconName);
           const isActive = config.activeStage === stageId;
+          const Icon = STAGE_ICONS[stage.iconName] || Sliders;
 
           return (
-            <React.Fragment key={stageId}>
+            <React.Fragment key={stage.id}>
               <button
-                onClick={() => onSelectStage(stageId)}
-                title={`${stage.name} Stage (Hotkey: ${stage.shortcut})`}
-                className={`relative flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+                onClick={() => onSelectStage(stage.id)}
+                className={`flex items-center space-x-1.5 px-2 py-0.5 rounded transition-all whitespace-nowrap ${
                   isActive
-                    ? 'bg-[#141414] text-white border border-[#2A2A2A]'
-                    : 'text-zinc-400 hover:text-white hover:bg-[#0D0D0D]'
+                    ? 'bg-[#7A0F18] text-[#E6E3DE] font-semibold'
+                    : 'text-[rgba(230,227,222,0.60)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.04)]'
                 }`}
+                title={`${stage.name} (${stage.shortcut}) — ${stage.description}`}
               >
-                <Icon className="w-3.5 h-3.5 text-zinc-300" />
-                <span>{stage.name}</span>
-
-                {/* Shortcut Key Badge */}
-                {config.keyboardShortcutsEnabled && (
-                  <span className="text-[9px] font-mono px-1 rounded bg-[#0D0D0D] text-zinc-500 border border-[#2A2A2A]">
-                    {stage.shortcut}
-                  </span>
-                )}
+                <span className="text-[9px] opacity-70">
+                  {stage.shortcut}
+                </span>
+                <Icon className="w-3 h-3" />
+                <span className="hidden md:inline">{stage.name}</span>
               </button>
 
-              {/* Step Arrow Divider */}
-              {index < activeStages.length - 1 && (
-                <ChevronRight className="w-3 h-3 text-zinc-700 shrink-0 mx-0.5" />
+              {idx < visibleStages.length - 1 && (
+                <span className="text-[rgba(230,227,222,0.12)] text-[10px] select-none">
+                  /
+                </span>
               )}
             </React.Fragment>
           );
         })}
       </div>
 
-      {/* Right Controls: Workspace Preset & Customizer Trigger */}
-      <div className="flex items-center gap-2 pl-3 ml-auto shrink-0">
-        {/* Active Preset Tag */}
-        <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 bg-[#0D0D0D] border border-[#2A2A2A] rounded text-[10px] text-zinc-400">
-          <Layout className="w-3 h-3 text-zinc-400" />
-          <span className="font-medium text-zinc-300">
-            {WORKSPACE_PRESETS[config.activePresetId]?.name || 'Custom Layout'}
-          </span>
-        </div>
-
-        {/* Customize Workspace Button */}
+      {onOpenCustomizer && (
         <button
           onClick={onOpenCustomizer}
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-[#0D0D0D] hover:bg-[#141414] text-zinc-300 hover:text-white border border-[#2A2A2A] transition-colors"
-          title="Customize Workspace Layout"
+          className="p-1 rounded text-[rgba(230,227,222,0.45)] hover:text-[#E6E3DE] hover:bg-[rgba(230,227,222,0.06)] transition-colors ml-2 shrink-0"
+          title="Customize Workspace Layout & Stages"
         >
-          <Settings2 className="w-3 h-3 text-zinc-400" />
-          <span className="hidden sm:inline text-[11px]">Customize</span>
+          <Settings2 className="w-3.5 h-3.5" />
         </button>
-      </div>
-    </div>
+      )}
+    </nav>
   );
 };
